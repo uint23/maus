@@ -35,6 +35,7 @@
 
 #endif
 
+void maus_die(const char* fmt, ...);
 MausWindow* maus_init(const char* title, int width, int height);
 void maus_log(FILE* fd, const char* fmt, ...);
 

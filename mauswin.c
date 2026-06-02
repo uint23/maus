@@ -1,15 +1,37 @@
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "mauswin.h"
+
+static void vlog(FILE* fd, const char* fmt, va_list ap);
+
+/* log message to output `fd` */
+static void vlog(FILE* fd, const char* fmt, va_list ap)
+{
+	fprintf(fd, "maus: ");
+	vfprintf(fd, fmt, ap);
+	fflush(fd);
+}
+
+/* log message to output `fd` and die
+   on finish */
+void maus_die(const char* fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	vlog(stderr, fmt, ap);
+	va_end(ap);
+
+	exit(EXIT_FAILURE);
+}
 
 /* log message to output `fd` */
 void maus_log(FILE* fd, const char* fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	vfprintf(fd, fmt, ap);
-	fflush(stderr);
+	vlog(fd, fmt, ap);
 	va_end(ap);
 }
 
