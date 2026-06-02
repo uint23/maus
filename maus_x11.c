@@ -11,10 +11,16 @@ MausWindow* maus_init(const char* title, int x, int y, int width, int height)
 		maus_log(stderr, "backend auto-selected: X11");
 
 	Display* d = XOpenDisplay(NULL);
-	if (!d)
-		maus_die("could not open X11 display");
+	if (!d) {
+		maus_die("failed to open X11 display");
+		return NULL;
+	}
 
 	uint32_t* px = malloc(sizeof(uint32_t)*width*height);
+	if (!px) {
+		maus_log(stderr, "failed to allocate %dx%d pixel grid", width, height);
+		return NULL;
+	}
 
 	MausWindow* win = malloc(sizeof(MausWindow));
 	win->display = d;
