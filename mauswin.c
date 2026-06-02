@@ -14,8 +14,6 @@ static void vlog(FILE* fd, const char* fmt, va_list ap)
 	fflush(fd);
 }
 
-/* log message to output `fd` and die
-   on finish */
 void maus_die(const char* fmt, ...)
 {
 	va_list ap;
@@ -26,7 +24,6 @@ void maus_die(const char* fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-/* log message to output `fd` */
 void maus_log(FILE* fd, const char* fmt, ...)
 {
 	va_list ap;

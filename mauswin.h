@@ -35,8 +35,13 @@
 
 #endif
 
+/* log message to output `fd` and die */
 void maus_die(const char* fmt, ...);
-MausWindow* maus_init(const char* title, int width, int height);
+
+/* initialise and create the window */
+MausWindow* maus_init(const char* title, int x, int y, int width, int height);
+
+/* log message to output `fd` */
 void maus_log(FILE* fd, const char* fmt, ...);
 
 #endif /* MAUSWIN_H */
