@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 /* auto selection */
-#if !defined(BACKEND_WIN) && !defined(BACKEND_MAC) && \
-    !defined(BACKEND_X11) && !defined(BACKEND_WAY)
+#if !defined(BACKEND_WIN) || !defined(BACKEND_MAC) || \
+    !defined(BACKEND_X11) || !defined(BACKEND_WAY)
 
 #define MAUS_WARN_BACKEND_AUTO_SEL 1
 
