@@ -41,6 +41,11 @@ bool maus_create_window(Maus* mw)
 	if (mw->win == None)
 		return false;
 
+	XSelectInput(mw->display, mw->win,
+		ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask |
+		ButtonReleaseMask | PointerMotionMask | StructureNotifyMask
+	);
+
 	XMapWindow(mw->display, mw->win);
 	XFlush(mw->display);
 
