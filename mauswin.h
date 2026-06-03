@@ -1,6 +1,7 @@
 #ifndef MAUSWIN_H
 #define MAUSWIN_H
 
+#include <stdbool.h>
 #include <stdio.h>
 
 /* auto selection */
@@ -35,10 +36,19 @@
 
 #endif
 
+/* close a Maus. returns false on fail */
+bool maus_close(MausWindow* mw);
+
+/* close a window without the whole Maus. returns false on fail */
+bool maus_close_window(MausWindow* mw);
+
+/* create window from MausWindow. returns false on fail */
+bool maus_create_window(MausWindow* mw);
+
 /* log message to output `fd` and die */
 void maus_die(const char* fmt, ...);
 
-/* initialise and create the window. returns NULL on fail */
+/* initialise and fills the MausWindow. returns NULL on fail */
 MausWindow* maus_init(const char* title, int x, int y, int width, int height);
 
 /* log message to output `fd` */

@@ -1,9 +1,51 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <X11/Xlib.h>
 
 #include "mauswin.h"
+
+bool maus_close(MausWindow* mw)
+{
+	if (mw->pixels)
+		free(mw->pixels);
+	if (mw->win != None) {
+		(void) maus_close_window(mw);
+	}
+	if (mw->display)
+		XCloseDisplay(mw->display);
+
+	return true;
+}
+
+bool maus_close_window(MausWindow* mw)
+{
+	if (mw->win != None) {
+		XUnmapWindow(mw->display, mw->win);
+		XDestroyWindow(mw->display, mw->win);
+	}
+
+	return true;
+}
+
+bool maus_create_window(MausWindow* mw)
+{
+	mw->win = XCreateSimpleWindow(
+		mw->display, mw->root,
+		mw->x, mw->y,
+		mw->width, mw->height,
+		0u, 0u, 0u
+	);
+
+	if (mw->win == None)
+		return false;
+
+	XMapWindow(mw->display, mw->win);
+	XFlush(mw->display);
+
+	return true;
+}
 
 MausWindow* maus_init(const char* title, int x, int y, int width, int height)
 {
@@ -30,7 +72,7 @@ MausWindow* maus_init(const char* title, int x, int y, int width, int height)
 	win->width = width;
 	win->height = height;
 	win->x = x;
-	win->y = x;
+	win->y = y;
 	win->pixels = px;
 
 	return win;
