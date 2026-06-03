@@ -3,7 +3,7 @@ CFLAGS = -std=c99 -Wall -Wextra -O2
 LIBS = -lX11
 
 SRC = main.c \
-      ../../mauswin.c \
+      ../../maus.c \
       ../../maus_x11.c
 
 all:

@@ -17,7 +17,7 @@ typedef struct {
 	int            y;
 
 	uint32_t*      pixels;
-} MausWindow;
+} Maus;
 
 #endif /* MAUSWIN_X11_H */
 

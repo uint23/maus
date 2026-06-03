@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "mauswin.h"
+#include "maus.h"
 
 static void vlog(FILE* fd, const char* fmt, va_list ap);
 

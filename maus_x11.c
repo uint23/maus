@@ -4,9 +4,9 @@
 
 #include <X11/Xlib.h>
 
-#include "mauswin.h"
+#include "maus.h"
 
-bool maus_close(MausWindow* mw)
+bool maus_close(Maus* mw)
 {
 	if (mw->pixels)
 		free(mw->pixels);
@@ -19,7 +19,7 @@ bool maus_close(MausWindow* mw)
 	return true;
 }
 
-bool maus_close_window(MausWindow* mw)
+bool maus_close_window(Maus* mw)
 {
 	if (mw->win != None) {
 		XUnmapWindow(mw->display, mw->win);
@@ -29,7 +29,7 @@ bool maus_close_window(MausWindow* mw)
 	return true;
 }
 
-bool maus_create_window(MausWindow* mw)
+bool maus_create_window(Maus* mw)
 {
 	mw->win = XCreateSimpleWindow(
 		mw->display, mw->root,
@@ -47,7 +47,7 @@ bool maus_create_window(MausWindow* mw)
 	return true;
 }
 
-MausWindow* maus_init(const char* title, int x, int y, int width, int height)
+Maus* maus_init(const char* title, int x, int y, int width, int height)
 {
 	if (MAUS_WARN_BACKEND_AUTO_SEL)
 		maus_log(stderr, "backend auto-selected: X11");
@@ -64,7 +64,7 @@ MausWindow* maus_init(const char* title, int x, int y, int width, int height)
 		return NULL;
 	}
 
-	MausWindow* win = malloc(sizeof(MausWindow));
+	Maus* win = malloc(sizeof(Maus));
 	win->display = d;
 	win->root = DefaultRootWindow(d);
 	win->win = None;
