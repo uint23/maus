@@ -1,5 +1,6 @@
 CC = cc
 CFLAGS = -std=c99 -Wall -Wextra -O2
+CPPFLAGS = -DBACKEND_X11
 LIBS = -lX11
 
 SRC = main.c \
