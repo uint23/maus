@@ -29,6 +29,7 @@ void maus_log(FILE* fd, const char* fmt, ...)
 	va_list ap;
 	va_start(ap, fmt);
 	vlog(fd, fmt, ap);
+	fputc('\n', fd);
 	va_end(ap);
 }
 
