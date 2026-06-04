@@ -30,9 +30,17 @@ int main(void)
 	maus_create_window(mw);
 
 	MausEvent ev;
+	/* waiting -- used in applications
+	for (;;) {
+		maus_event_wait(mw, &ev);
+		handle_ev(&ev, mw);
+	}
+	*/
+
+	/* constant polling -- used in games */
 	for (;;) {
 		while (maus_event_poll(mw, &ev))
-			handle_ev(&ev, mw);
+			(void) handle_ev(&ev, mw);
 	}
 
 	maus_close(mw);

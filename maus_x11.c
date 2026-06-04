@@ -138,14 +138,26 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 
 bool maus_event_poll(Maus* mw, MausEvent* ev)
 {
-	if (!XPending(mw->display))
-		return false;
-
-	ev->type = MAUS_EV_NONE;
-
 	XEvent xev;
-	XNextEvent(mw->display, &xev);
+	while (XPending(mw->display)) {
+		XNextEvent(mw->display, &xev);
+		ev->type = MAUS_EV_NONE;
+		if (handle_event(&xev, ev, mw))
+			return true;
 
-	return handle_event(&xev, ev, mw);
+	}
+
+	return false;
+}
+
+void maus_event_wait(Maus* mw, MausEvent* ev)
+{
+	XEvent xev;
+	for (;;) {
+		XNextEvent(mw->display, &xev);
+		ev->type = MAUS_EV_NONE;
+		if (handle_event(&xev, ev, mw))
+			return;
+	}
 }
 

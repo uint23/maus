@@ -97,5 +97,10 @@ void maus_log(FILE* fd, const char* fmt, ...);
    note: can burn cpu cycles */
 bool maus_event_poll(Maus* mw, MausEvent* ev);
 
+/* poll for events then fill `ev` with retrieved events.
+   returns true if event polled, else false
+   note: thread goes to sleep until an event arrives */
+void maus_event_wait(Maus* mw, MausEvent* ev);
+
 #endif /* MAUSWIN_H */
 
