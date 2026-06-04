@@ -6,6 +6,59 @@
 
 #include "maus.h"
 
+static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw);
+
+static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
+{
+	switch (xev->type) {
+		case ClientMessage: /* TODO proper quit handling */
+			ev->type = MAUS_EV_CLOSE;
+			return true;
+
+		case KeyPress:
+			ev->type = MAUS_EV_KEY;
+			ev->key.code = xev->xkey.keycode;
+			ev->key.pressed = true;
+			return true;
+
+		case KeyRelease:
+			ev->type = MAUS_EV_KEY;
+			ev->key.code = xev->xkey.keycode;
+			ev->key.pressed = false;
+			return true;
+
+		case ButtonPress:
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = xev->xbutton.button;
+			ev->mouse.button.pressed = true;
+			return true;
+
+		case ButtonRelease:
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = xev->xbutton.button;
+			ev->mouse.button.pressed = false;
+			return true;
+
+		case MotionNotify:
+			ev->type = MAUS_EV_MOUSE_MOTION;
+			ev->mouse.motion.x = xev->xmotion.x;
+			ev->mouse.motion.y = xev->xmotion.y;
+			return true;
+
+		case ConfigureNotify:
+			ev->type = MAUS_EV_RESIZE;
+			ev->resize.width = xev->xconfigure.width;
+			ev->resize.height = xev->xconfigure.height;
+
+			/* TODO put into maus_resize */
+			mw->width = xev->xconfigure.width;
+			mw->height = xev->xconfigure.height;
+			return true;
+	}
+
+	return false;
+}
+
 bool maus_close(Maus* mw)
 {
 	if (mw->pixels)
@@ -83,7 +136,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	return win;
 }
 
-bool maus_poll(Maus* mw, MausEvent* ev)
+bool maus_event_poll(Maus* mw, MausEvent* ev)
 {
 	if (!XPending(mw->display))
 		return false;
@@ -93,52 +146,6 @@ bool maus_poll(Maus* mw, MausEvent* ev)
 	XEvent xev;
 	XNextEvent(mw->display, &xev);
 
-	switch (xev.type) {
-		case ClientMessage: /* TODO proper quit handling */
-			ev->type = MAUS_EV_CLOSE;
-			return true;
-
-		case KeyPress:
-			ev->type = MAUS_EV_KEY;
-			ev->key.code = xev.xkey.keycode;
-			ev->key.pressed = true;
-			return true;
-
-		case KeyRelease:
-			ev->type = MAUS_EV_KEY;
-			ev->key.code = xev.xkey.keycode;
-			ev->key.pressed = false;
-			return true;
-
-		case ButtonPress:
-			ev->type = MAUS_EV_MOUSE_BUTTON;
-			ev->mouse.button.button = xev.xbutton.button;
-			ev->mouse.button.pressed = true;
-			return true;
-
-		case ButtonRelease:
-			ev->type = MAUS_EV_MOUSE_BUTTON;
-			ev->mouse.button.button = xev.xbutton.button;
-			ev->mouse.button.pressed = false;
-			return true;
-
-		case MotionNotify:
-			ev->type = MAUS_EV_MOUSE_MOTION;
-			ev->mouse.motion.x = xev.xmotion.x;
-			ev->mouse.motion.y = xev.xmotion.y;
-			return true;
-
-		case ConfigureNotify:
-			ev->type = MAUS_EV_RESIZE;
-			ev->resize.width = xev.xconfigure.width;
-			ev->resize.height = xev.xconfigure.height;
-
-			/* TODO put into maus_resize */
-			mw->width = xev.xconfigure.width;
-			mw->height = xev.xconfigure.height;
-			return true;
-	}
-
-	return false;
+	return handle_event(&xev, ev, mw);
 }
 

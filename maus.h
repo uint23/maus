@@ -92,8 +92,10 @@ Maus* maus_init(const char* title, int x, int y, int width, int height);
 /* log message to output `fd` */
 void maus_log(FILE* fd, const char* fmt, ...);
 
-/* poll for events then fill `ev` with retrieved events */
-bool maus_poll(Maus* mw, MausEvent* ev);
+/* poll for events then fill `ev` with retrieved events.
+   returns true if event polled, else false.
+   note: can burn cpu cycles */
+bool maus_event_poll(Maus* mw, MausEvent* ev);
 
 #endif /* MAUSWIN_H */
 

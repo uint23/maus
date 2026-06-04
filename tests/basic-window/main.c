@@ -31,7 +31,7 @@ int main(void)
 
 	MausEvent ev;
 	for (;;) {
-		while (maus_poll(mw, &ev))
+		while (maus_event_poll(mw, &ev))
 			handle_ev(&ev, mw);
 	}
 
