@@ -3,20 +3,21 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 
 /* auto selection */
-#if !defined(BACKEND_WIN) || !defined(BACKEND_MAC) || \
-    !defined(BACKEND_X11) || !defined(BACKEND_WAY)
+#if !defined(BACKEND_WIN) && !defined(BACKEND_MAC) && \
+    !defined(BACKEND_X11) && !defined(BACKEND_WAY)
 
 #define MAUS_WARN_BACKEND_AUTO_SEL 1
 
 #if defined(_WIN32)
-#define BACKEND_WIN32
+#define BACKEND_WIN
 
 #elif defined(__APPLE__)
-#define BACKEND_COCOA
+#define BACKEND_MAC
 
-#else /* default to X not Way */
+#else /* default to X */
 #define BACKEND_X11
 
 #endif
