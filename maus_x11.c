@@ -134,7 +134,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 		return NULL;
 	}
 
-	Maus* win = malloc(sizeof(Maus));
+	Maus* win = calloc(1, sizeof(Maus));
 	win->display = d;
 	win->root = DefaultRootWindow(d);
 	win->win = None;
