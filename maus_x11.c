@@ -11,9 +11,12 @@ static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw);
 static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 {
 	switch (xev->type) {
-		case ClientMessage: /* TODO proper quit handling */
-			ev->type = MAUS_EV_CLOSE;
-			return true;
+		case ClientMessage:
+			if ((Atom)xev->xclient.data.l[0] == mw->atoms[MAUS_ATOM_WM_DELETE_WINDOW]) {
+				ev->type = MAUS_EV_CLOSE;
+				return true;
+			}
+			break;
 
 		case KeyPress:
 			ev->type = MAUS_EV_KEY;
@@ -84,23 +87,32 @@ bool maus_close_window(Maus* mw)
 
 bool maus_create_window(Maus* mw)
 {
-	mw->win = XCreateSimpleWindow(
-		mw->display, mw->root,
+	Display* dpy = mw->display;
+	Window* win = &mw->win;
+
+	*win = XCreateSimpleWindow(
+		dpy, mw->root,
 		mw->x, mw->y,
 		mw->width, mw->height,
 		0u, 0u, 0u
 	);
 
-	if (mw->win == None)
+	if (*win == None)
 		return false;
 
-	XSelectInput(mw->display, mw->win,
+	XSelectInput(dpy, *win,
 		ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask |
 		ButtonReleaseMask | PointerMotionMask | StructureNotifyMask
 	);
 
-	XMapWindow(mw->display, mw->win);
-	XFlush(mw->display);
+	/* atoms */
+	mw->atoms[MAUS_ATOM_WM_DELETE_WINDOW] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
+
+	XSetWMProtocols(dpy, *win, &mw->atoms[MAUS_ATOM_WM_DELETE_WINDOW], 1);
+	XStoreName(dpy, *win, mw->title);
+
+	XMapWindow(dpy, *win);
+	XFlush(dpy);
 
 	return true;
 }
