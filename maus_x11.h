@@ -1,5 +1,5 @@
-#ifndef MAUSWIN_X11_H
-#define MAUSWIN_X11_H
+#ifndef MAUS_X11_H
+#define MAUS_X11_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -20,5 +20,5 @@ typedef struct {
 	uint32_t*      pixels;
 } Maus;
 
-#endif /* MAUSWIN_X11_H */
+#endif /* MAUS_X11_H */
 
