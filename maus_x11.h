@@ -6,6 +6,10 @@
 
 #include <X11/Xlib.h>
 
+#include "maus_keys.h"
+
+#define MAUS_KEYCODE_LAST 256
+
 typedef enum {
 	MAUS_ATOM_WM_DELETE_WINDOW,
 	MAUS_ATOM_LAST,
@@ -24,7 +28,9 @@ typedef struct {
 	int32_t        y;
 
 	uint32_t*      pixels;
-	bool           keys[256];
+	bool           key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
+	bool           key_syms[MAUS_KEY_LAST];      /* logical keys */
+	MausKey        keymap[MAUS_KEYCODE_LAST];    /* X11 keycode->MausKey */
 } Maus;
 
 #endif /* MAUS_X11_H */
