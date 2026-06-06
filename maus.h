@@ -124,5 +124,9 @@ void maus_event_wait(Maus* mw, MausEvent* ev);
 /* present the pixelbuffer to the screen */
 void maus_present(Maus* mw);
 
+/* resize window to specified width and height. returns true
+   on resize success, else false */
+bool maus_resize(Maus* mw, uint32_t width, uint32_t height);
+
 #endif /* MAUSWIN_H */
 

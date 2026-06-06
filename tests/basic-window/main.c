@@ -2,7 +2,7 @@
 
 #include "../../maus.h"
 
-void handle_ev(MausEvent* ev, Maus* mw)
+void handle_ev(Maus* mw, MausEvent* ev)
 {
 	switch (ev->type) {
 		case MAUS_EV_CLOSE:
@@ -17,8 +17,9 @@ void handle_ev(MausEvent* ev, Maus* mw)
 			break;
 		case MAUS_EV_MOUSE_MOTION:
 			break;
-		case MAUS_EV_RESIZE:
-			break;
+		case MAUS_EV_RESIZE: {
+			maus_resize(mw, ev->resize.width, ev->resize.height);
+		}
 		case MAUS_EV_NONE:
 			break;
 	}
@@ -42,7 +43,7 @@ int main(void)
 	/* constant polling -- used in games */
 	for (;;) {
 		while (maus_event_poll(mw, &ev))
-			(void) handle_ev(&ev, mw);
+			(void) handle_ev(mw, &ev);
 		maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
 		maus_present(mw);
 	}

@@ -278,10 +278,6 @@ static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 			ev->type = MAUS_EV_RESIZE;
 			ev->resize.width = xev->xconfigure.width;
 			ev->resize.height = xev->xconfigure.height;
-
-			/* TODO put into maus_resize */
-			/* mw->width = xev->xconfigure.width; */
-			/* mw->height = xev->xconfigure.height; */
 			return true;
 	}
 
@@ -467,5 +463,20 @@ void maus_present(Maus* mw)
 	);
 
 	XFlush(mw->display);
+}
+
+bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
+{
+	if (width == 0 || height == 0 ||
+	    mw->width == width || mw->height == height)
+		return false;
+	fb_destroy(mw);
+
+	mw->width = width;
+	mw->height = height;
+
+	XSync(mw->display, False);
+	XFlush(mw->display);
+	return fb_create(mw);
 }
 
