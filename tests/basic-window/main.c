@@ -27,6 +27,8 @@ void handle_ev(MausEvent* ev, Maus* mw)
 int main(void)
 {
 	Maus* mw = maus_init("basic window", 0, 0, 800, 600);
+	if (!mw)
+		return EXIT_FAILURE;
 	maus_create_window(mw);
 
 	MausEvent ev;
@@ -41,6 +43,8 @@ int main(void)
 	for (;;) {
 		while (maus_event_poll(mw, &ev))
 			(void) handle_ev(&ev, mw);
+		maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
+		maus_present(mw);
 	}
 
 	maus_close(mw);
