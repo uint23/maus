@@ -10,34 +10,40 @@
 /* auto selection */
 #if !defined(BACKEND_WIN) && !defined(BACKEND_MAC) && \
     !defined(BACKEND_X11) && !defined(BACKEND_WAY)
-
 #define MAUS_WARN_BACKEND_AUTO_SEL 1
+	#if defined(_WIN32)
+	#define BACKEND_WIN
 
-#if defined(_WIN32)
-#define BACKEND_WIN
+	#elif defined(__APPLE__)
+	#define BACKEND_MAC
 
-#elif defined(__APPLE__)
-#define BACKEND_MAC
+	#else /* default to X */
+	#define BACKEND_X11
 
-#else /* default to X */
-#define BACKEND_X11
+	#endif
+	#endif /* auto selection */
 
+	#if defined(BACKEND_X11)
+	#include "maus_x11.h"
+
+	#elif defined(BACKEND_WAY)
+	/* ... */
+
+	#elif defined(BACKEND_WIN)
+	/* ... */
+
+	#elif defined(BACKEND_MAC)
+	/* ... */
 #endif
-#endif /* auto selection */
 
-#if defined(BACKEND_X11)
-#include "maus_x11.h"
-
-#elif defined(BACKEND_WAY)
+#define MAUS_COL_ARGB(a, r, g, b) (MausColor){a, r, g, b}
+#define MAUS_COL_RGBA(r, g, b, a) (MausColor){a, r, g, b}
+#define MAUS_UNPACK_COL(c) \
+	(((uint32_t)(c).a << 24) | \
+	 ((uint32_t)(c).r << 16) | \
+	 ((uint32_t)(c).g <<  8) | \
+	 ((uint32_t)(c).b))
 /* ... */
-
-#elif defined(BACKEND_WIN)
-/* ... */
-
-#elif defined(BACKEND_MAC)
-/* ... */
-
-#endif
 
 typedef enum {
 	MAUS_EV_NONE,
@@ -47,6 +53,13 @@ typedef enum {
 	MAUS_EV_MOUSE_MOTION,
 	MAUS_EV_RESIZE,
 } MausEventType;
+
+typedef struct {
+	uint8_t        a;
+	uint8_t        r;
+	uint8_t        g;
+	uint8_t        b;
+} MausColor;
 
 typedef struct {
 	MausEventType type;
@@ -89,6 +102,9 @@ bool maus_create_window(Maus* mw);
 /* log message to output `fd` and die */
 void maus_die(const char* fmt, ...);
 
+/* paint framebuffer with color: `col` */
+void maus_fb_clear(Maus* mw, MausColor col);
+
 /* initialise and fills the Maus. returns NULL on fail */
 Maus* maus_init(const char* title, int x, int y, int width, int height);
 
@@ -104,6 +120,9 @@ bool maus_event_poll(Maus* mw, MausEvent* ev);
    returns true if event polled, else false
    note: thread goes to sleep until an event arrives */
 void maus_event_wait(Maus* mw, MausEvent* ev);
+
+/* present the pixelbuffer to the screen */
+void maus_present(Maus* mw);
 
 #endif /* MAUSWIN_H */
 
