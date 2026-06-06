@@ -44,6 +44,7 @@
 	 ((uint32_t)(c).g <<  8) | \
 	 ((uint32_t)(c).b))
 /* ... */
+#define MAUS_PIXEL_AT(mw, x, y) ((mw)->fb[(y) * (mw)->stride + (x)])
 
 typedef enum {
 	MAUS_EV_NONE,
