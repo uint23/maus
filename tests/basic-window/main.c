@@ -9,7 +9,7 @@ void handle_ev(MausEvent* ev, Maus* mw)
 			maus_close(mw);
 			exit(EXIT_SUCCESS);
 		case MAUS_EV_KEY:
-			if (ev->key.code == 24) { /* quit */
+			if (ev->key.key == MAUS_KEY_Q) {
 				maus_close(mw);
 				exit(EXIT_SUCCESS);
 			}
