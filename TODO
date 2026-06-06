@@ -1,0 +1,17 @@
+Maus:
+[-] Clipboard
+[-] Cursor {norma, hidden, locked}
+[-] Cursor warping
+[-] Raw buttons
+[?] Text buffer
+[?] Double buffering
+[?] Clock, DT
+
+MausFont:
+[?] load bdf/bitmap fonts
+
+X11:
+Wayland:
+Windows:
+macOS:
+
