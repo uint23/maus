@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "maus_keys.h"
+
 /* auto selection */
 #if !defined(BACKEND_WIN) && !defined(BACKEND_MAC) && \
     !defined(BACKEND_X11) && !defined(BACKEND_WAY)
@@ -51,8 +53,8 @@ typedef struct {
 
 	union {
 		struct {
-			uint32_t  code;
-			/*  sym */
+			uint32_t  code; /* raw, backend keycode */
+			MausKey   key;  /* logical, mapped key */
 			bool      pressed;
 		} key;
 
