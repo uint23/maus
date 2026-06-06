@@ -91,7 +91,7 @@ typedef struct {
 } MausEvent;
 
 /* close a Maus. returns false on fail */
-bool maus_close(Maus* mw);
+void maus_close(Maus* mw);
 
 /* close a window without the whole Maus. returns false on fail */
 bool maus_close_window(Maus* mw);

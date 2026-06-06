@@ -310,7 +310,7 @@ static MausKey keysym_to_mauskey(KeySym sym)
 }
 
 
-bool maus_close(Maus* mw)
+void maus_close(Maus* mw)
 {
 	fb_destroy(mw);
 	if (mw->win != None) {
@@ -318,8 +318,6 @@ bool maus_close(Maus* mw)
 	}
 	if (mw->display)
 		XCloseDisplay(mw->display);
-
-	return true;
 }
 
 bool maus_close_window(Maus* mw)
@@ -417,7 +415,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	mw->shm.shmaddr = NULL;
 	if (!fb_create(mw)) {
 		maus_log(stderr, "failed to create framebuffer");
-		(void) maus_close(mw); /* TODO change to `void maus_close` */
+		maus_close(mw);
 		free(mw);
 		return NULL;
 	}
