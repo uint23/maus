@@ -1,7 +1,5 @@
 Maus:
 [-] Clipboard
-[X] Cursor {normal, hidden, locked}
-[-] Mouse buttons
 [?] Cursor warping
 [?] Text buffer
 [?] Double buffering

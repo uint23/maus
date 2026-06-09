@@ -6,6 +6,7 @@
 int mx, my;
 bool cur_visible = true;
 bool cur_locked = false;
+bool mb1_pressed = false;
 
 void handle_ev(Maus* mw, MausEvent* ev)
 {
@@ -39,8 +40,12 @@ void handle_ev(Maus* mw, MausEvent* ev)
 
 			break;
 		}
-		case MAUS_EV_MOUSE_BUTTON:
+		case MAUS_EV_MOUSE_BUTTON: {
+			mb1_pressed =
+			mw->mouse_buttons[MAUS_MOUSE_BUTTON_LEFT] ?
+			true : false;
 			break;
+		}
 		case MAUS_EV_MOUSE_MOTION: {
 			mx = ev->mouse.motion.x;
 			my = ev->mouse.motion.y;
@@ -77,7 +82,7 @@ int main(void)
 			(void) handle_ev(mw, &ev);
 		if (mx >= 0 && my >= 0 &&
 		    mx < (int32_t)mw->width &&
-		    my < (int32_t)mw->height) {
+		    my < (int32_t)mw->height && mb1_pressed) {
 			MAUS_PIXEL_AT(mw, mx, my) = MAUS_UNPACK_COL(red);
 		}
 
