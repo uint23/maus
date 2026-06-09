@@ -11,7 +11,6 @@ static void vlog(FILE* fd, const char* fmt, va_list ap)
 {
 	fprintf(fd, "maus: ");
 	vfprintf(fd, fmt, ap);
-	fflush(fd);
 }
 
 void maus_die(const char* fmt, ...)
