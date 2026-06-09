@@ -7,7 +7,7 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XShm.h>
 
-#include "maus_keys.h"
+#include "maus_input.h"
 
 #define MAUS_KEYCODE_LAST 256
 
@@ -38,6 +38,8 @@ typedef struct {
 	bool           key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
 	bool           key_syms[MAUS_KEY_LAST];      /* logical keys */
 	MausKey        keymap[MAUS_KEYCODE_LAST];    /* X11 keycode->MausKey */
+
+	MausCursor     cursor;
 } Maus;
 
 #endif /* MAUS_X11_H */

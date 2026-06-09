@@ -1,3 +1,4 @@
+#include <X11/X.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/shm.h>
@@ -6,6 +7,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <X11/cursorfont.h>
 #include <X11/extensions/XShm.h>
 
 #include "maus.h"
@@ -478,5 +480,68 @@ bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
 	XSync(mw->display, False);
 	XFlush(mw->display);
 	return fb_create(mw);
+}
+
+void maus_cur_set_mode(Maus* mw, MausCursorState state)
+{
+	Display* dpy = mw->display;
+	Window win = mw->win;
+
+	if (!dpy) {
+		maus_log(stderr, "display is NULL");
+		return;
+	}
+	if (win == None) {
+		maus_log(stderr, "win is None");
+		return;
+	}
+
+	/* show cursor */
+	if (state == MAUS_CURSOR_STATE_VISIBLE) {
+		XUndefineCursor(dpy, win);
+		XFlush(dpy);
+		return;
+	}
+
+	/* hide cursor */
+	if (state == MAUS_CURSOR_STATE_HIDDEN) {
+		Pixmap blank_pm = XCreatePixmap(dpy, win, 1, 1, 1);
+		XColor black = {.red=0, .green=0, .blue=0};
+		Cursor blank_cur = XCreatePixmapCursor(
+			dpy, blank_pm, blank_pm, &black, &black, 0, 0
+		);
+		XFreePixmap(dpy, blank_pm);
+
+		XDefineCursor(dpy, win, blank_cur);
+		XFreeCursor(dpy, blank_cur);
+		XFlush(dpy);
+		return;
+	}
+
+	/* lock cursor */
+	if (state == MAUS_CURSOR_STATE_LOCKED) {
+		Mask mask = ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
+		int grab = XGrabPointer(
+			dpy, win, True, mask, GrabModeAsync,
+			GrabModeAsync, win, None, CurrentTime
+		);
+
+		if (grab != GrabSuccess) {
+			maus_log(stderr, "failed to grab mouse pointer");
+			return;
+		}
+
+		/* TODO keep position just snap to window dimensions */
+		XWarpPointer(dpy, None, win, 0, 0, 0, 0, mw->width/2, mw->height/2);
+		XFlush(dpy);
+		return;
+	}
+
+	/* unlock cursor */
+	if (state == MAUS_CURSOR_STATE_FREE) {
+		XUngrabPointer(dpy, CurrentTime);
+		XFlush(dpy);
+		return;
+	}
 }
 

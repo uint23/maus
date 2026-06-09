@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "maus_keys.h"
+#include "maus_input.h"
 
 /* auto selection */
 #if !defined(BACKEND_WIN) && !defined(BACKEND_MAC) && \
@@ -128,6 +128,9 @@ void maus_present(Maus* mw);
 /* resize window to specified width and height. returns true
    on resize success, else false */
 bool maus_resize(Maus* mw, uint32_t width, uint32_t height);
+
+/* change behavior of mouse based on state passed */
+void maus_cur_set_mode(Maus* mw, MausCursorState state);
 
 #endif /* MAUSWIN_H */
 
