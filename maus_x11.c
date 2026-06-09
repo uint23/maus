@@ -1,5 +1,7 @@
+#include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
 
@@ -12,6 +14,7 @@
 #include "maus.h"
 #include "maus_input.h"
 #include "maus_x11.h"
+#include "utils.h"
 
 typedef struct {
 	KeySym  x11;
@@ -295,6 +298,42 @@ static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 			ev->resize.width = xev->xconfigure.width;
 			ev->resize.height = xev->xconfigure.height;
 			return true;
+
+		case SelectionRequest: {
+			XSelectionRequestEvent* req = &xev->xselectionrequest;
+			XEvent rsp; /* response */
+
+			Atom utf8_string = XInternAtom(be->display, "UTF8_STRING", False);
+			Atom clipboard = XInternAtom(be->display, "CLIPBOARD", False);
+
+			rsp.type = SelectionNotify;
+			rsp.xselection.display = req->display;
+			rsp.xselection.requestor = req->requestor;
+			rsp.xselection.selection = req->selection;
+			rsp.xselection.target = req->target;
+			rsp.xselection.property = None; 
+			rsp.xselection.time = req->time;
+
+			/* assign clipboard text to requesting programs
+			   window property */
+			if (req->selection == clipboard &&
+			    req->target == utf8_string &&
+			    mw->clipboard) {
+			        XChangeProperty(
+					req->display, req->requestor,
+					req->property, utf8_string, 8,
+					PropModeReplace, (unsigned char*)mw->clipboard, 
+					strlen(mw->clipboard)
+			 	);
+				rsp.xselection.property = req->property; 
+			}
+
+			/* send reply back to the prog requesting paste */
+			XSendEvent(req->display, req->requestor, False, 0, &rsp);
+			XFlush(be->display);
+
+			return false; /* skip maus polling it */
+		}
 	}
 
 	return false;
@@ -341,10 +380,83 @@ static int xerr(Display* dpy, XErrorEvent* ev)
 	return 0;
 }
 
+void maus_clipboard_set_text(Maus* mw, const char* text)
+{
+	MausBackend* be = &mw->backend;
+	if (!be->display || be->win == None)
+		return;
+
+	/* clear old entry */
+	if (mw->clipboard) {
+		free(mw->clipboard);
+		mw->clipboard = NULL;
+	}
+
+	if (text)
+		mw->clipboard = strdup(text);
+
+	Atom clipboard = XInternAtom(be->display, "CLIPBOARD", False);
+	XSetSelectionOwner(be->display, clipboard, be->win, CurrentTime);
+	XFlush(be->display);
+}
+
+char* maus_clipboard_get_text(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+	Atom clipboard = XInternAtom(be->display, "CLIPBOARD", False);
+	Atom utf8_string = XInternAtom(be->display, "UTF8_STRING", False);
+	Atom maus_clipboard_prop = XInternAtom(be->display, "MAUS_CLIPBOARD_PROP", False);
+
+	/* fetch clipboard data to `maus_clipboard_prop`
+	   window property */
+	XConvertSelection(
+		be->display, clipboard, utf8_string,
+		maus_clipboard_prop, be->win, CurrentTime
+	);
+	XFlush(be->display);
+
+	/* check for selection response */
+	XEvent xev;
+	bool ok = false;
+	for (int timeout = 0; timeout < 10000; timeout++) { 
+		if (XCheckTypedWindowEvent(be->display, be->win, SelectionNotify, &xev)) {
+			if (xev.xselection.property != None)
+				ok = true;
+			break;
+		}
+	}
+	if (!ok)
+		return NULL;
+
+	/* read string off property */
+	Atom actual_type;
+	int actual_fmt;
+	unsigned long nitems;
+	unsigned long bytes_after;
+	unsigned char* prop_data = NULL;
+	XGetWindowProperty(
+		be->display, be->win, maus_clipboard_prop, 0,LONG_MAX,
+		True, utf8_string, &actual_type, &actual_fmt, &nitems,
+		&bytes_after, &prop_data
+	);
+
+	char* res = NULL;
+	if (prop_data) {
+		res = strdup((char*)prop_data);
+		XFree(prop_data);
+	}
+
+	return res;
+}
+
 void maus_close(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 	fb_destroy(mw);
+	if (mw->clipboard) {
+		free(mw->clipboard);
+		mw->clipboard = NULL;
+	}
 	if (be->win != None) {
 		(void) maus_close_window(mw);
 	}

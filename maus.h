@@ -94,6 +94,7 @@ typedef struct {
 
 typedef struct {
 	MausBackend    backend;
+	char*          clipboard;
 
 	uint32_t*      fb;
 	uint32_t       stride;
@@ -111,6 +112,13 @@ typedef struct {
 	MausCursor     cursor;
 	bool           mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
 } Maus;
+
+
+/* set text to system clipboard */
+void maus_clipboard_set_text(Maus* mw, const char* text);
+
+/* get text from system clipboard */
+char* maus_clipboard_get_text(Maus* mw);
 
 /* close a Maus. returns false on fail */
 void maus_close(Maus* mw);
