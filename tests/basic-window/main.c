@@ -1,8 +1,11 @@
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "../../maus.h"
 
 int mx, my;
+bool cur_visible = true;
+bool cur_locked = false;
 
 void handle_ev(Maus* mw, MausEvent* ev)
 {
@@ -11,11 +14,31 @@ void handle_ev(Maus* mw, MausEvent* ev)
 			maus_close(mw);
 			exit(EXIT_SUCCESS);
 			break;
-		case MAUS_EV_KEY:
-			if (ev->key.key == MAUS_KEY_Q) {
+		case MAUS_EV_KEY: {
+			(void)0;
+
+			bool* keys = mw->key_syms;
+			if (keys[MAUS_KEY_Q]) {
 				maus_close(mw);
 				exit(EXIT_SUCCESS);
-			} break;
+			};
+			if (keys[MAUS_KEY_P]) {
+				cur_visible ?
+				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_HIDDEN) :
+				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_VISIBLE);
+
+				cur_visible = !cur_visible;
+			}
+			if (keys[MAUS_KEY_L]) {
+				cur_locked ?
+				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_FREE) :
+				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_LOCKED);
+
+				cur_locked = !cur_locked;
+			}
+
+			break;
+		}
 		case MAUS_EV_MOUSE_BUTTON:
 			break;
 		case MAUS_EV_MOUSE_MOTION: {
