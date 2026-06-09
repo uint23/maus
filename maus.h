@@ -21,21 +21,22 @@
 	#define BACKEND_X11
 
 	#endif
-	#endif /* auto selection */
+#endif /* auto selection */
 
-	#if defined(BACKEND_X11)
+#if defined(BACKEND_X11)
 	#include "maus_x11.h"
 
-	#elif defined(BACKEND_WAY)
+#elif defined(BACKEND_WAY)
 	/* ... */
 
-	#elif defined(BACKEND_WIN)
+#elif defined(BACKEND_WIN)
 	/* ... */
 
-	#elif defined(BACKEND_MAC)
+#elif defined(BACKEND_MAC)
 	/* ... */
 #endif
 
+#define MAUS_KEYCODE_LAST (256)
 #define MAUS_COL_ARGB(a, r, g, b) (MausColor){a, r, g, b}
 #define MAUS_COL_RGBA(r, g, b, a) (MausColor){a, r, g, b}
 #define MAUS_UNPACK_COL(c) \
@@ -90,6 +91,26 @@ typedef struct {
 		} resize;
 	};
 } MausEvent;
+
+typedef struct {
+	MausBackend    backend;
+
+	uint32_t*      fb;
+	uint32_t       stride;
+
+	const char*    title;
+	uint32_t       width;
+	uint32_t       height;
+	int32_t        x;
+	int32_t        y;
+
+	bool           key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
+	bool           key_syms[MAUS_KEY_LAST];      /* logical keys */
+	MausKey        keymap[MAUS_KEYCODE_LAST];    /* X11 keycode->MausKey */
+
+	MausCursor     cursor;
+	bool           mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
+} Maus;
 
 /* close a Maus. returns false on fail */
 void maus_close(Maus* mw);

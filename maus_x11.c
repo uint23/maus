@@ -11,11 +11,22 @@
 
 #include "maus.h"
 #include "maus_input.h"
+#include "maus_x11.h"
 
 typedef struct {
 	KeySym  x11;
 	MausKey maus;
 } KeyMapEntry;
+
+static void build_keymap(Maus* mw);
+static bool fb_create(Maus* mw);
+static bool fb_create_shm(Maus* mw);
+/* TODO? static bool fb_create_ximage(Maus* mw); */
+static void fb_destroy(Maus* mw);
+static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw);
+static MausKey keysym_to_mauskey(KeySym sym);
+static MausMouseButton mouse_button_to_maus(int btn);
+static int xerr(Display* dpy, XErrorEvent* ev);
 
 static const KeyMapEntry keymap[] = {
 	{ XK_BackSpace,    MAUS_KEY_BACKSPACE }, { XK_Tab,              MAUS_KEY_TAB },
@@ -46,18 +57,9 @@ static const KeyMapEntry keymap[] = {
 
 static int xerrored;
 
-static void build_keymap(Maus* mw);
-static bool fb_create(Maus* mw);
-static bool fb_create_shm(Maus* mw);
-/* TODO? static bool fb_create_ximage(Maus* mw); */
-static void fb_destroy(Maus* mw);
-static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw);
-static MausKey keysym_to_mauskey(KeySym sym);
-static MausMouseButton mouse_button_to_maus(int btn);
-static int xerr(Display* dpy, XErrorEvent* ev);
-
 static void build_keymap(Maus* mw)
 {
+	MausBackend* be = &mw->backend;
 	int min_code = 0;
 	int max_code = 0;
 	int syms_per_code = 0;
@@ -67,9 +69,9 @@ static void build_keymap(Maus* mw)
 	for (int i = 0; i < MAUS_KEYCODE_LAST; i++)
 		mw->keymap[i] = MAUS_KEY_NONE;
 
-	XDisplayKeycodes(mw->display, &min_code, &max_code);
+	XDisplayKeycodes(be->display, &min_code, &max_code);
 	KeySym* syms = XGetKeyboardMapping(
-		mw->display, min_code,
+		be->display, min_code,
 		max_code - min_code + 1, &syms_per_code
 	);
 	if (!syms)
@@ -93,12 +95,13 @@ static void build_keymap(Maus* mw)
 
 static bool fb_create(Maus* mw)
 {
-	mw->image = NULL;
+	MausBackend* be = &mw->backend;
+	be->image = NULL;
+	be->shmat = false;
+	be->shm.shmid = -1;
+	be->shm.shmaddr = NULL;
 	mw->fb = NULL;
 	mw->stride = 0;
-	mw->shmat = false;
-	mw->shm.shmid = -1;
-	mw->shm.shmaddr = NULL;
 
 	return fb_create_shm(mw);
 }
@@ -106,109 +109,110 @@ static bool fb_create(Maus* mw)
 /* allocate and store a new shm for the framebuffer */
 static bool fb_create_shm(Maus* mw)
 {
-
-	if (!XShmQueryExtension(mw->display))
+	MausBackend* be = &mw->backend;
+	if (!XShmQueryExtension(be->display))
 		return false;
 
-	int scr = DefaultScreen(mw->display);
-	int depth = DefaultDepth(mw->display, scr);
-	Visual* vis = DefaultVisual(mw->display, scr);
+	int scr = DefaultScreen(be->display);
+	int depth = DefaultDepth(be->display, scr);
+	Visual* vis = DefaultVisual(be->display, scr);
 	if (!vis) {
 		maus_log(stderr, "could not get default visual");
 		return false;
 	}
 
-	mw->image = XShmCreateImage(
-		mw->display, vis, depth, ZPixmap, NULL,
-		&mw->shm, mw->width, mw->height
+	be->image = XShmCreateImage(
+		be->display, vis, depth, ZPixmap, NULL,
+		&be->shm, mw->width, mw->height
 	);
-	if (!mw->image) {
+	if (!be->image) {
 		maus_log(stderr, "could not create XImage (shm)");
 		return false;
 	}
 
-	if (mw->image->bits_per_pixel != 32) {
-		XDestroyImage(mw->image);
-		mw->image = NULL;
+	if (be->image->bits_per_pixel != 32) {
+		XDestroyImage(be->image);
+		be->image = NULL;
 		maus_log(stderr, "XImage not 32bpp");
 		return false;
 	}
 
-	size_t size = mw->image->bytes_per_line * mw->image->height;
-	mw->shm.shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0600);
-	if (mw->shm.shmid < 0) {
-		XDestroyImage(mw->image);
-		mw->image = NULL;
+	size_t size = be->image->bytes_per_line * be->image->height;
+	be->shm.shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0600);
+	if (be->shm.shmid < 0) {
+		XDestroyImage(be->image);
+		be->image = NULL;
 		maus_log(stderr, "shmget() failed");
 		return false;
 	}
 
-	mw->shm.shmaddr = shmat(mw->shm.shmid, NULL, 0);
-	if (mw->shm.shmaddr == (char*)-1) {
-		shmctl(mw->shm.shmid, IPC_RMID, NULL);
-		XDestroyImage(mw->image);
-		mw->image = NULL;
+	be->shm.shmaddr = shmat(be->shm.shmid, NULL, 0);
+	if (be->shm.shmaddr == (char*)-1) {
+		shmctl(be->shm.shmid, IPC_RMID, NULL);
+		XDestroyImage(be->image);
+		be->image = NULL;
 		maus_log(stderr, "shmat() failed");
 		return false;
 	}
 
-	mw->shm.readOnly = False;
-	mw->image->data = mw->shm.shmaddr;
+	be->shm.readOnly = False;
+	be->image->data = be->shm.shmaddr;
 
 	xerrored = 0;
 	int (*old_xerr)(Display*, XErrorEvent*) = XSetErrorHandler(xerr);
 
-	if (!XShmAttach(mw->display, &mw->shm))
+	if (!XShmAttach(be->display, &be->shm))
 		xerrored = 1;
 
-	XSync(mw->display, False);
+	XSync(be->display, False);
 	XSetErrorHandler(old_xerr);
 	if (xerrored) {
-		shmdt(mw->shm.shmaddr);
-		shmctl(mw->shm.shmid, IPC_RMID, NULL);
-		XDestroyImage(mw->image);
+		shmdt(be->shm.shmaddr);
+		shmctl(be->shm.shmid, IPC_RMID, NULL);
+		XDestroyImage(be->image);
 
-		mw->image = NULL;
+		be->image = NULL;
 		mw->fb = NULL;
-		mw->shm.shmaddr = NULL;
-		mw->shm.shmid = -1;
+		be->shm.shmaddr = NULL;
+		be->shm.shmid = -1;
 		maus_log(stderr, "XShmAttach failed");
 		return false;
 	}
 
-	shmctl(mw->shm.shmid, IPC_RMID, NULL);
+	shmctl(be->shm.shmid, IPC_RMID, NULL);
 
-	mw->shmat = true;
-	mw->fb = (uint32_t*) mw->image->data;
-	mw->stride = mw->image->bytes_per_line / sizeof(uint32_t);
+	be->shmat = true;
+	mw->fb = (uint32_t*) be->image->data;
+	mw->stride = be->image->bytes_per_line / sizeof(uint32_t);
 
 	return true;
 }
 
 static void fb_destroy(Maus* mw)
 {
-	Display* dpy = mw->display;
-	if (mw->shmat) {
-		XShmDetach(dpy, &mw->shm);
+	MausBackend* be = &mw->backend;
+	Display* dpy = be->display;
+	if (be->shmat) {
+		XShmDetach(dpy, &be->shm);
 		XSync(dpy, False);
-		mw->shmat = false;
+		be->shmat = false;
 	}
 
-	if (mw->image) {
-		XDestroyImage(mw->image);
-		mw->image = NULL;
+	if (be->image) {
+		XDestroyImage(be->image);
+		be->image = NULL;
 	}
 
-	if (mw->shm.shmaddr && mw->shm.shmaddr != (char*) -1) {
-		shmdt(mw->shm.shmaddr);
-		mw->shm.shmaddr = NULL;
+	if (be->shm.shmaddr && be->shm.shmaddr != (char*) -1) {
+		shmdt(be->shm.shmaddr);
+		be->shm.shmaddr = NULL;
 	}
 
 	/* normally already removed after attach but
 	   can check anyways */
-	if (mw->shm.shmid >= 0) {
-		shmctl(mw->shm.shmid, IPC_RMID, NULL);
-		mw->shm.shmid = -1;
+	if (be->shm.shmid >= 0) {
+		shmctl(be->shm.shmid, IPC_RMID, NULL);
+		be->shm.shmid = -1;
 	}
 
 	mw->fb = NULL;
@@ -217,6 +221,7 @@ static void fb_destroy(Maus* mw)
 
 static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 {
+	MausBackend* be = &mw->backend;
 	uint32_t code = 0;
 	unsigned int mb;
 	MausMouseButton mbtype;
@@ -224,7 +229,7 @@ static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 
 	switch (xev->type) {
 		case ClientMessage:
-			if ((Atom)xev->xclient.data.l[0] == mw->atoms[MAUS_ATOM_WM_DELETE_WINDOW]) {
+			if ((Atom)xev->xclient.data.l[0] == be->atoms[MAUS_ATOM_WM_DELETE_WINDOW]) {
 				ev->type = MAUS_EV_CLOSE;
 				return true;
 			}
@@ -316,27 +321,48 @@ static MausKey keysym_to_mauskey(KeySym sym)
 	return MAUS_KEY_NONE;
 }
 
+static MausMouseButton mouse_button_to_maus(int btn)
+{
+	switch (btn) {
+		case Button1: return MAUS_MOUSE_BUTTON_LEFT;
+		case Button2: return MAUS_MOUSE_BUTTON_MIDDLE;
+		case Button3: return MAUS_MOUSE_BUTTON_RIGHT;
+		case Button4: return MAUS_MOUSE_BUTTON_SCROLL_UP;
+		case Button5: return MAUS_MOUSE_BUTTON_SCROLL_DOWN;
+		default:      return MAUS_MOUSE_BUTTON_NONE;
+	}
+}
+
+static int xerr(Display* dpy, XErrorEvent* ev)
+{
+	(void) dpy;
+	(void) ev;
+	xerrored = 1;
+	return 0;
+}
 
 void maus_close(Maus* mw)
 {
+	MausBackend* be = &mw->backend;
 	fb_destroy(mw);
-	if (mw->win != None) {
+	if (be->win != None) {
 		(void) maus_close_window(mw);
 	}
-	if (mw->display)
-		XCloseDisplay(mw->display);
+	if (be->display)
+		XCloseDisplay(be->display);
 }
 
 bool maus_close_window(Maus* mw)
 {
-	if (mw->gc) {
-		XFreeGC(mw->display, mw->gc);
-		mw->gc = 0;
+	MausBackend* be = &mw->backend;
+	if (be->gc) {
+		XFreeGC(be->display, be->gc);
+		be->gc = 0;
 	}
 
-	if (mw->win != None) {
-		XUnmapWindow(mw->display, mw->win);
-		XDestroyWindow(mw->display, mw->win);
+	if (be->win != None) {
+		XUnmapWindow(be->display, be->win);
+		XDestroyWindow(be->display, be->win);
 	}
 
 	return true;
@@ -344,11 +370,12 @@ bool maus_close_window(Maus* mw)
 
 bool maus_create_window(Maus* mw)
 {
-	Display* dpy = mw->display;
-	Window* win = &mw->win;
+	MausBackend* be = &mw->backend;
+	Display* dpy = be->display;
+	Window* win = &be->win;
 
 	*win = XCreateSimpleWindow(
-		dpy, mw->root,
+		dpy, be->root,
 		mw->x, mw->y,
 		mw->width, mw->height,
 		0u, 0u, 0u
@@ -363,16 +390,16 @@ bool maus_create_window(Maus* mw)
 	);
 
 	/* atoms */
-	mw->atoms[MAUS_ATOM_WM_DELETE_WINDOW] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
+	be->atoms[MAUS_ATOM_WM_DELETE_WINDOW] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 
-	XSetWMProtocols(dpy, *win, &mw->atoms[MAUS_ATOM_WM_DELETE_WINDOW], 1);
+	XSetWMProtocols(dpy, *win, &be->atoms[MAUS_ATOM_WM_DELETE_WINDOW], 1);
 	XStoreName(dpy, *win, mw->title);
 
 	XMapWindow(dpy, *win);
 	XFlush(dpy);
 
-	mw->gc = XCreateGC(dpy, *win, 0, NULL);
-	if (!mw->gc) {
+	be->gc = XCreateGC(dpy, *win, 0, NULL);
+	if (!be->gc) {
 		maus_log(stderr, "failed to create window GC");
 		maus_close_window(mw);
 		return false;
@@ -402,9 +429,10 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	}
 
 	Maus* mw = calloc(1, sizeof(Maus));
-	mw->display = d;
-	mw->root = DefaultRootWindow(d);
-	mw->win = None;
+	MausBackend* be = &mw->backend;
+	be->display = d;
+	be->root = DefaultRootWindow(d);
+	be->win = None;
 	mw->title = title;
 	mw->width = width;
 	mw->height = height;
@@ -414,12 +442,11 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 
 	build_keymap(mw);
 	
-	mw->gc = 0;
-	mw->image = NULL;
-	mw->fb = NULL;
-	mw->shmat = false;
-	mw->shm.shmid = -1;
-	mw->shm.shmaddr = NULL;
+	be->gc = 0;
+	be->image = NULL;
+	be->shmat = false;
+	be->shm.shmid = -1;
+	be->shm.shmaddr = NULL;
 	if (!fb_create(mw)) {
 		maus_log(stderr, "failed to create framebuffer");
 		maus_close(mw);
@@ -432,9 +459,10 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 
 bool maus_event_poll(Maus* mw, MausEvent* ev)
 {
+	MausBackend* be = &mw->backend;
 	XEvent xev;
-	while (XPending(mw->display)) {
-		XNextEvent(mw->display, &xev);
+	while (XPending(be->display)) {
+		XNextEvent(be->display, &xev);
 		ev->type = MAUS_EV_NONE;
 		if (handle_event(&xev, ev, mw))
 			return true;
@@ -444,31 +472,12 @@ bool maus_event_poll(Maus* mw, MausEvent* ev)
 	return false;
 }
 
-static MausMouseButton mouse_button_to_maus(int btn)
-{
-	switch (btn) {
-		case Button1: return MAUS_MOUSE_BUTTON_LEFT;
-		case Button2: return MAUS_MOUSE_BUTTON_MIDDLE;
-		case Button3: return MAUS_MOUSE_BUTTON_RIGHT;
-		case Button4: return MAUS_MOUSE_BUTTON_SCROLL_UP;
-		case Button5: return MAUS_MOUSE_BUTTON_SCROLL_DOWN;
-		default:      return MAUS_MOUSE_BUTTON_NONE;
-	}
-}
-
-static int xerr(Display* dpy, XErrorEvent* ev)
-{
-	(void) dpy;
-	(void) ev;
-	xerrored = 1;
-	return 0;
-}
-
 void maus_event_wait(Maus* mw, MausEvent* ev)
 {
+	MausBackend* be = &mw->backend;
 	XEvent xev;
 	for (;;) {
-		XNextEvent(mw->display, &xev);
+		XNextEvent(be->display, &xev);
 		ev->type = MAUS_EV_NONE;
 		if (handle_event(&xev, ev, mw))
 			return;
@@ -477,19 +486,21 @@ void maus_event_wait(Maus* mw, MausEvent* ev)
 
 void maus_present(Maus* mw)
 {
-	if (!mw->image || mw->win == None)
+	MausBackend* be = &mw->backend;
+	if (!be->image || be->win == None)
 		return;
 
 	XShmPutImage(
-		mw->display, mw->win, mw->gc, mw->image,
+		be->display, be->win, be->gc, be->image,
 		0, 0, 0, 0, mw->width, mw->height, False
 	);
 
-	XFlush(mw->display);
+	XFlush(be->display);
 }
 
 bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
 {
+	MausBackend* be = &mw->backend;
 	if (width == 0 || height == 0 ||
 	    mw->width == width || mw->height == height)
 		return false;
@@ -498,15 +509,16 @@ bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
 	mw->width = width;
 	mw->height = height;
 
-	XSync(mw->display, False);
-	XFlush(mw->display);
+	XSync(be->display, False);
+	XFlush(be->display);
 	return fb_create(mw);
 }
 
 void maus_cur_set_mode(Maus* mw, MausCursorState state)
 {
-	Display* dpy = mw->display;
-	Window win = mw->win;
+	MausBackend* be = &mw->backend;
+	Display* dpy = be->display;
+	Window win = be->win;
 
 	if (!dpy) {
 		maus_log(stderr, "display is NULL");
