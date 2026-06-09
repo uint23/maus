@@ -1,4 +1,3 @@
-#include <X11/X.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/shm.h>
@@ -11,6 +10,7 @@
 #include <X11/extensions/XShm.h>
 
 #include "maus.h"
+#include "maus_input.h"
 
 typedef struct {
 	KeySym  x11;
@@ -53,6 +53,7 @@ static bool fb_create_shm(Maus* mw);
 static void fb_destroy(Maus* mw);
 static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw);
 static MausKey keysym_to_mauskey(KeySym sym);
+static MausMouseButton mouse_button_to_maus(int btn);
 static int xerr(Display* dpy, XErrorEvent* ev);
 
 static void build_keymap(Maus* mw)
@@ -217,6 +218,8 @@ static void fb_destroy(Maus* mw)
 static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 {
 	uint32_t code = 0;
+	unsigned int mb;
+	MausMouseButton mbtype;
 	MausKey key = MAUS_KEY_NONE;
 
 	switch (xev->type) {
@@ -260,14 +263,20 @@ static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 
 		case ButtonPress:
 			ev->type = MAUS_EV_MOUSE_BUTTON;
-			ev->mouse.button.button = xev->xbutton.button;
+			mb = xev->xbutton.button;
+			mbtype = mouse_button_to_maus(mb);
+			ev->mouse.button.button = mbtype;
 			ev->mouse.button.pressed = true;
+			mw->mouse_buttons[mbtype] = true;
 			return true;
 
 		case ButtonRelease:
 			ev->type = MAUS_EV_MOUSE_BUTTON;
-			ev->mouse.button.button = xev->xbutton.button;
+			mb = xev->xbutton.button;
+			mbtype = mouse_button_to_maus(mb);
+			ev->mouse.button.button = mbtype;
 			ev->mouse.button.pressed = false;
+			mw->mouse_buttons[mbtype] = false;
 			return true;
 
 		case MotionNotify:
@@ -433,6 +442,18 @@ bool maus_event_poll(Maus* mw, MausEvent* ev)
 	}
 
 	return false;
+}
+
+static MausMouseButton mouse_button_to_maus(int btn)
+{
+	switch (btn) {
+		case Button1: return MAUS_MOUSE_BUTTON_LEFT;
+		case Button2: return MAUS_MOUSE_BUTTON_MIDDLE;
+		case Button3: return MAUS_MOUSE_BUTTON_RIGHT;
+		case Button4: return MAUS_MOUSE_BUTTON_SCROLL_UP;
+		case Button5: return MAUS_MOUSE_BUTTON_SCROLL_DOWN;
+		default:      return MAUS_MOUSE_BUTTON_NONE;
+	}
 }
 
 static int xerr(Display* dpy, XErrorEvent* ev)

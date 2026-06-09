@@ -40,6 +40,7 @@ typedef struct {
 	MausKey        keymap[MAUS_KEYCODE_LAST];    /* X11 keycode->MausKey */
 
 	MausCursor     cursor;
+	bool           mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
 } Maus;
 
 #endif /* MAUS_X11_H */

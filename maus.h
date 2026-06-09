@@ -74,8 +74,8 @@ typedef struct {
 
 		struct {
 			struct {
-				uint8_t  button;
-				bool     pressed;
+				MausMouseButton button;
+				bool            pressed;
 			} button;
 
 			struct {
