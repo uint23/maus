@@ -1,7 +1,6 @@
 Maus:
-[-] Clipboard
 [?] Cursor warping
-[?] Text buffer
+[?] Input text buffer
 [?] Double buffering
 [?] Clock, DT
 [?] Custom cursor

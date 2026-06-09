@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "../../maus.h"
@@ -77,6 +78,7 @@ int main(void)
 	// constant polling -- used in games
 	maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
 	MausColor red = { 255, 255, 0, 0 };
+	unsigned long long ticks = 0;
 	for (;;) {
 		while (maus_event_poll(mw, &ev))
 			(void) handle_ev(mw, &ev);
@@ -93,6 +95,9 @@ int main(void)
 			}
 		}
 
+		char buf[512] = {0};
+		snprintf(buf, 512, "maus' basic-window has been running for %lld ticks!", ticks++);
+		maus_clipboard_set_text(mw, buf);
 		maus_present(mw);
 	}
 
