@@ -1,5 +1,7 @@
-#ifndef MAUS_KEYS_H
-#define MAUS_KEYS_H
+#ifndef MAUS_INPUT_H
+#define MAUS_INPUT_H
+
+#include <stdint.h>
 
 typedef enum {
 	MAUS_KEY_NONE = 0,
@@ -50,6 +52,19 @@ typedef enum {
 
 	MAUS_KEY_LAST,
 } MausKey;
+
+typedef struct {
+	int32_t        x;
+	int32_t        y;
+} MausCursor;
+
+typedef enum {
+	MAUS_CURSOR_STATE_VISIBLE,
+	MAUS_CURSOR_STATE_HIDDEN,
+	MAUS_CURSOR_STATE_LOCKED,
+	MAUS_CURSOR_STATE_FREE,
+} MausCursorState;
+
 
 #endif /* MAUS_KEYS_H */
 
