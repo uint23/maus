@@ -96,9 +96,10 @@ int main(void)
 		}
 
 		char buf[512] = {0};
-		snprintf(buf, 512, "maus' basic-window has been running for %lld ticks!", ticks++);
+		snprintf(buf, 512, "maus' basic-window has been running for %lld ticks!", ticks);
 		maus_clipboard_set_text(mw, buf);
 		maus_present(mw);
+		maus_target_fps(mw, 1+ticks++);
 	}
 
 	// rainbow

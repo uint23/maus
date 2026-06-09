@@ -94,6 +94,7 @@ typedef struct {
 
 typedef struct {
 	MausBackend    backend;
+	uint64_t       frame_time_last;
 	char*          clipboard;
 
 	uint32_t*      fb;
@@ -135,6 +136,9 @@ void maus_die(const char* fmt, ...);
 /* paint framebuffer with color: `col` */
 void maus_fb_clear(Maus* mw, MausColor col);
 
+/* get time since arbitrary start point (ns) */
+uint64_t maus_get_time_ns(void);
+
 /* initialise and fills the Maus. returns NULL on fail */
 Maus* maus_init(const char* title, int x, int y, int width, int height);
 
@@ -157,6 +161,9 @@ void maus_present(Maus* mw);
 /* resize window to specified width and height. returns true
    on resize success, else false */
 bool maus_resize(Maus* mw, uint32_t width, uint32_t height);
+
+/* cap framerate to targetted fps */
+void maus_target_fps(Maus* mw, uint32_t fps);
 
 /* change behavior of mouse based on state passed */
 void maus_cur_set_mode(Maus* mw, MausCursorState state);

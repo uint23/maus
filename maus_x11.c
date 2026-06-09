@@ -545,6 +545,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	be->display = d;
 	be->root = DefaultRootWindow(d);
 	be->win = None;
+	mw->frame_time_last = maus_get_time_ns();
 	mw->title = title;
 	mw->width = width;
 	mw->height = height;
