@@ -1,11 +1,12 @@
 Maus:
 [-] Clipboard
-[-] Cursor {norma, hidden, locked}
-[-] Cursor warping
-[-] Raw buttons
+[X] Cursor {normal, hidden, locked}
+[-] Mouse buttons
+[?] Cursor warping
 [?] Text buffer
 [?] Double buffering
 [?] Clock, DT
+[?] Custom cursor
 
 MausFont:
 [?] load bdf/bitmap fonts
