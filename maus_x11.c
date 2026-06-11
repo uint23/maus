@@ -453,6 +453,10 @@ void maus_close(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 	fb_destroy(mw);
+	if (mw->bfb) {
+		free(mw->bfb);
+		mw->bfb = NULL;
+	}
 	if (mw->clipboard) {
 		free(mw->clipboard);
 		mw->clipboard = NULL;
@@ -523,7 +527,7 @@ bool maus_create_window(Maus* mw)
 void maus_fb_clear(Maus* mw, MausColor col)
 {
 	for (uint32_t y = 0; y < mw->height; y++) {
-		uint32_t* row = mw->fb + (y * mw->stride);
+		uint32_t* row = mw->bfb + (y * mw->stride);
 		for (uint32_t x = 0; x < mw->width; x++)
 			row[x] = (uint32_t) MAUS_UNPACK_COL(col);
 	}
@@ -566,6 +570,13 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 		free(mw);
 		return NULL;
 	}
+	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
+	if (!mw->bfb) {
+		maus_log(stderr, "failed to allocate back buffer");
+		maus_close(mw);
+		free(mw);
+		return NULL;
+	}
 
 	return mw;
 }
@@ -603,6 +614,9 @@ void maus_present(Maus* mw)
 	if (!be->image || be->win == None)
 		return;
 
+	uint32_t bytes = mw->stride * mw->height * sizeof(uint32_t);
+	memcpy(mw->fb, mw->bfb, bytes);
+
 	XShmPutImage(
 		be->display, be->win, be->gc, be->image,
 		0, 0, 0, 0, mw->width, mw->height, False
@@ -617,14 +631,27 @@ bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
 	if (width == 0 || height == 0 ||
 	    mw->width == width || mw->height == height)
 		return false;
+
 	fb_destroy(mw);
+	if (mw->bfb) {
+		free(mw->bfb);
+		mw->bfb = NULL;
+	}
 
 	mw->width = width;
 	mw->height = height;
 
 	XSync(be->display, False);
 	XFlush(be->display);
-	return fb_create(mw);
+
+	if (!fb_create(mw))
+		return false;
+
+	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
+	if (!mw->bfb)
+		return false;
+
+	return true;
 }
 
 void maus_cur_set_mode(Maus* mw, MausCursorState state)

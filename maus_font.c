@@ -8,7 +8,7 @@
 void maus_draw_text(Maus* mw, MausFont* font, int32_t x, int32_t y,
                     const char* text, MausColor col)
 {
-	if (!mw || !mw->fb || !font || !text)
+	if (!mw || !mw->bfb || !font || !text)
 		return;
 
 	uint32_t col_up = MAUS_UNPACK_COL(col);

@@ -45,7 +45,7 @@
 	 ((uint32_t)(c).g <<  8) | \
 	 ((uint32_t)(c).b))
 /* ... */
-#define MAUS_PIXEL_AT(mw, x, y) ((mw)->fb[(y) * (mw)->stride + (x)])
+#define MAUS_PIXEL_AT(mw, x, y) ((mw)->bfb[(y) * (mw)->stride + (x)])
 
 typedef enum {
 	MAUS_EV_NONE,
@@ -97,7 +97,8 @@ typedef struct {
 	uint64_t       frame_time_last;
 	char*          clipboard;
 
-	uint32_t*      fb;
+	uint32_t*      fb;  /* front frame buffer */
+	uint32_t*      bfb; /* back frame buffer */
 	uint32_t       stride;
 
 	const char*    title;
