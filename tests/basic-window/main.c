@@ -75,9 +75,10 @@ int main(void)
 	MausColor red = { 255, 255, 0, 0 };
 	/* unsigned long long ticks = 0; */
 	for (;;) {
-		maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
 		while (maus_event_poll(mw, &ev))
 			(void) handle_ev(mw, &ev);
+		maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
+
 		if (mx >= 0 && my >= 0 &&
 		    mx < (int32_t)mw->width &&
 		    my < (int32_t)mw->height && mb1_pressed) {
