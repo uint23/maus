@@ -5,7 +5,8 @@ LIBS = -lX11 -lXext
 
 SRC = main.c \
       ../../maus.c \
-      ../../maus_x11.c
+      ../../maus_x11.c \
+      ../../maus_font.c
 
 all:
 	${CC} ${SRC} -o basic-window ${CFLAGS} ${LIBS}

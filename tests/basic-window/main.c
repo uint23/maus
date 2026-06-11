@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "../../maus.h"
+#include "../../maus_font.h"
 
 int mx, my;
 bool cur_visible = true;
@@ -66,20 +67,15 @@ int main(void)
 	if (!mw)
 		return EXIT_FAILURE;
 	maus_create_window(mw);
+	MausFont* font = maus_font_load("assets/fonts/font1.bdf");
+	if (!font)
+		return EXIT_FAILURE;
 
 	MausEvent ev;
-	// waiting -- used in applications
-	/* for (;;) { */
-	/* 	maus_event_wait(mw, &ev); */
-	/* 	handle_ev(&ev, mw); */
-	/* } */
-
-
-	// constant polling -- used in games
-	maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
 	MausColor red = { 255, 255, 0, 0 };
-	unsigned long long ticks = 0;
+	/* unsigned long long ticks = 0; */
 	for (;;) {
+		maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
 		while (maus_event_poll(mw, &ev))
 			(void) handle_ev(mw, &ev);
 		if (mx >= 0 && my >= 0 &&
@@ -95,25 +91,15 @@ int main(void)
 			}
 		}
 
-		char buf[512] = {0};
-		snprintf(buf, 512, "maus' basic-window has been running for %lld ticks!", ticks);
-		maus_clipboard_set_text(mw, buf);
+		maus_draw_text(mw, font, 700, 50, "maus font\nloading example", red);
+
+		/* char buf[512] = {0}; */
+		/* snprintf(buf, 512, "maus' basic-window has been running for %lld ticks!", ticks); */
+		/* maus_clipboard_set_text(mw, buf); */
+		maus_target_fps(mw, 60);
 		maus_present(mw);
-		maus_target_fps(mw, 1+ticks++);
 	}
-
-	// rainbow
-	/* uint8_t r = 0; */
-	/* uint8_t g = 86; */
-	/* uint8_t b = 172; */
-	/* for (;;) { */
-	/* 	while (maus_event_poll(mw, &ev)) */
-	/* 		(void) handle_ev(mw, &ev); */
-
-	/* 	maus_fb_clear(mw, MAUS_COL_RGBA(r++, g++, b++, 255)); */
-	/* 	maus_present(mw); */
-	/* } */
-
+	maus_font_free(font);
 	maus_close(mw);
 }
 
