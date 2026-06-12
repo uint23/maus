@@ -1,11 +1,9 @@
 Maus:
 [?] Cursor warping
 [?] Input text buffer
-[?] Double buffering
 [?] Custom cursor
 
 MausFont:
-[?] load bdf/bitmap fonts
 
 X11:
 Wayland:
