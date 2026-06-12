@@ -21,7 +21,6 @@ typedef struct {
 	MausKey maus;
 } KeyMapEntry;
 
-static void build_keymap(Maus* mw);
 static bool fb_create(Maus* mw);
 static bool fb_create_shm(Maus* mw);
 /* TODO? static bool fb_create_ximage(Maus* mw); */
@@ -59,42 +58,6 @@ static const KeyMapEntry keymap[] = {
 };
 
 static int xerrored;
-
-static void build_keymap(Maus* mw)
-{
-	MausBackend* be = &mw->backend;
-	int min_code = 0;
-	int max_code = 0;
-	int syms_per_code = 0;
-
-	/* can be called multiple times during lieftime
-	   so initial calloc may not be enough */
-	for (int i = 0; i < MAUS_KEYCODE_LAST; i++)
-		mw->keymap[i] = MAUS_KEY_NONE;
-
-	XDisplayKeycodes(be->display, &min_code, &max_code);
-	KeySym* syms = XGetKeyboardMapping(
-		be->display, min_code,
-		max_code - min_code + 1, &syms_per_code
-	);
-	if (!syms)
-		return;
-	if (syms_per_code <= 0) {
-		XFree(syms);
-		return;
-	}
-
-	for (int code = min_code; code <= max_code && code < MAUS_KEYCODE_LAST; code++) {
-		for (int col = 0; col < syms_per_code; col++) {
-			KeySym sym = syms[(code - min_code) * syms_per_code + col];
-			mw->keymap[code] = keysym_to_mauskey(sym);
-			if (mw->keymap[code] != MAUS_KEY_NONE)
-				break;
-		}
-	}
-
-	XFree(syms);
-}
 
 static bool fb_create(Maus* mw)
 {
@@ -228,7 +191,6 @@ static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 	uint32_t code = 0;
 	unsigned int mb;
 	MausMouseButton mbtype;
-	MausKey key = MAUS_KEY_NONE;
 
 	switch (xev->type) {
 		case ClientMessage:
@@ -240,34 +202,51 @@ static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 
 		case MappingNotify:
 			XRefreshKeyboardMapping(&xev->xmapping);
-			build_keymap(mw);
+			return true;
 			break;
 
-		case KeyPress:
+		case KeyPress: {
 			ev->type = MAUS_EV_KEY;
 			code = xev->xkey.keycode;
-			key = code < MAUS_KEYCODE_LAST ? mw->keymap[code] : MAUS_KEY_NONE;
 			ev->key.code = code;
-			ev->key.key = key;
 			ev->key.pressed = true;
 			if (code < MAUS_KEYCODE_LAST)
-				mw->key_codes[code] = true;
-			if (key != MAUS_KEY_NONE)
-				mw->key_syms[key] = true;
-			return true;
+			        mw->key_codes[code] = true;
 
-		case KeyRelease:
+			/* grab the raw, base sym */
+			KeySym sym = XLookupKeysym(&xev->xkey, 0);
+			ev->key.key = keysym_to_mauskey(sym);
+			if (ev->key.key != MAUS_KEY_NONE)
+			        mw->key_syms[ev->key.key] = true;
+
+			char buf[8] = {0};
+			int len = XLookupString(&xev->xkey, buf, sizeof(buf), NULL, NULL);
+			if (len > 0)
+			        ev->key.text = (buf[0] == '\r') ? '\n' : buf[0];
+			else
+			        ev->key.text = 0;
+
+			return true;
+		}
+
+		case KeyRelease: {
 			ev->type = MAUS_EV_KEY;
 			code = xev->xkey.keycode;
-			key = code < MAUS_KEYCODE_LAST ? mw->keymap[code] : MAUS_KEY_NONE;
 			ev->key.code = code;
-			ev->key.key = key;
 			ev->key.pressed = false;
+			ev->key.text = 0;
+
 			if (code < MAUS_KEYCODE_LAST)
-				mw->key_codes[code] = false;
-			if (key != MAUS_KEY_NONE)
-				mw->key_syms[key] = false;
+			        mw->key_codes[code] = false;
+
+			/* unset base sym set on `KeyPress` */
+			KeySym sym = XLookupKeysym(&xev->xkey, 0);
+			ev->key.key = keysym_to_mauskey(sym);
+			if (ev->key.key != MAUS_KEY_NONE)
+			        mw->key_syms[ev->key.key] = false;
+
 			return true;
+		}
 
 		case ButtonPress:
 			ev->type = MAUS_EV_MOUSE_BUTTON;
@@ -341,12 +320,9 @@ static bool handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 
 static MausKey keysym_to_mauskey(KeySym sym)
 {
-	if (sym >= XK_0 && sym <= XK_9)
-		return MAUS_KEY_0 + (sym - XK_0);
-	if (sym >= XK_A && sym <= XK_Z)
-		return MAUS_KEY_A + (sym - XK_A);
-	if (sym >= XK_a && sym <= XK_z)
-		return MAUS_KEY_A + (sym - XK_a);
+	if (sym >= 0x20 && sym <= 0x7E)
+		return (MausKey)sym;
+
 	if (sym >= XK_F1 && sym <= XK_F12)
 		return MAUS_KEY_F1 + (sym - XK_F1);
 	if (sym >= XK_KP_0 && sym <= XK_KP_9)
@@ -557,8 +533,6 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	mw->y = y;
 	mw->fb = NULL;
 
-	build_keymap(mw);
-	
 	be->gc = 0;
 	be->image = NULL;
 	be->shmat = false;

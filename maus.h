@@ -70,6 +70,7 @@ typedef struct {
 		struct {
 			uint32_t  code; /* raw, backend keycode */
 			MausKey   key;  /* logical, mapped key */
+			char      text; /* translated text from key */
 			bool      pressed;
 		} key;
 
@@ -109,7 +110,6 @@ typedef struct {
 
 	bool           key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
 	bool           key_syms[MAUS_KEY_LAST];      /* logical keys */
-	MausKey        keymap[MAUS_KEYCODE_LAST];    /* X11 keycode->MausKey */
 
 	MausCursor     cursor;
 	bool           mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
