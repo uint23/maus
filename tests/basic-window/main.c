@@ -9,6 +9,8 @@ int mx, my;
 bool cur_visible = true;
 bool cur_locked = false;
 bool mb1_pressed = false;
+char txtbuf[4096] = {'\0'};
+int current_char = 0;
 
 void handle_ev(Maus* mw, MausEvent* ev)
 {
@@ -21,24 +23,35 @@ void handle_ev(Maus* mw, MausEvent* ev)
 			(void)0;
 
 			bool* keys = mw->key_syms;
-			if (keys[MAUS_KEY_Q]) {
+			if (keys[MAUS_KEY_CONTROL_L] && keys[MAUS_KEY_Q]) {
 				maus_close(mw);
 				exit(EXIT_SUCCESS);
 			};
-			if (keys[MAUS_KEY_P]) {
+			if (keys[MAUS_KEY_CONTROL_L] && keys[MAUS_KEY_P]) {
 				cur_visible ?
 				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_HIDDEN) :
 				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_VISIBLE);
 
 				cur_visible = !cur_visible;
 			}
-			if (keys[MAUS_KEY_L]) {
+			if (keys[MAUS_KEY_CONTROL_L] && keys[MAUS_KEY_L]) {
 				cur_locked ?
 				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_FREE) :
 				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_LOCKED);
 
 				cur_locked = !cur_locked;
 			}
+
+			if (ev->key.pressed == false)
+				break;
+
+			if (!((ev->key.key >= 32 && ev->key.key <= 126) || ev->key.key == '\n'))
+				break;
+
+			if (current_char + 1 < 4095 && current_char >= 0)
+				txtbuf[current_char++] = ev->key.key;
+			else
+				maus_log(stderr, "txtbuf full");
 
 			break;
 		}
@@ -92,11 +105,14 @@ int main(void)
 			}
 		}
 
-		maus_draw_text(mw, font, 700, 50, "maus font\nloading example", red);
+		/* maus_draw_text(mw, font, 700, 50, "maus font\nloading example", red); */
 
 		/* char buf[512] = {0}; */
 		/* snprintf(buf, 512, "maus' basic-window has been running for %lld ticks!", ticks); */
 		/* maus_clipboard_set_text(mw, buf); */
+
+		maus_draw_text(mw, font, 700, 50, txtbuf, red);
+
 		maus_target_fps(mw, 60);
 		maus_present(mw);
 	}
