@@ -115,6 +115,8 @@ typedef struct {
 	bool           mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
 } Maus;
 
+/* clear screen with color: `col` */
+void maus_clear(Maus* mw, MausColor col);
 
 /* set text to system clipboard */
 void maus_clipboard_set_text(Maus* mw, const char* text);
@@ -134,9 +136,6 @@ bool maus_create_window(Maus* mw);
 /* log message to output `fd` and die */
 void maus_die(const char* fmt, ...);
 
-/* paint framebuffer with color: `col` */
-void maus_fb_clear(Maus* mw, MausColor col);
-
 /* get time since arbitrary start point (ns) */
 uint64_t maus_get_time_ns(void);
 
@@ -151,16 +150,15 @@ void maus_log(FILE* fd, const char* fmt, ...);
    note: can burn cpu cycles */
 bool maus_event_poll(Maus* mw, MausEvent* ev);
 
-/* poll for events then fill `ev` with retrieved events.
-   returns true if event polled, else false
-   note: thread goes to sleep until an event arrives */
+/* poll for events then fill `ev` with retrieved events. returns true if event
+   polled, else false. note, thread goes to sleep until an event arrives */
 void maus_event_wait(Maus* mw, MausEvent* ev);
 
 /* present the pixelbuffer to the screen */
 void maus_present(Maus* mw);
 
-/* resize window to specified width and height. returns true
-   on resize success, else false */
+/* resize window to specified width and height. returns true on resize success,
+   else false */
 bool maus_resize(Maus* mw, uint32_t width, uint32_t height);
 
 /* cap framerate to targetted fps */

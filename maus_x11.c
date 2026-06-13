@@ -502,7 +502,7 @@ bool maus_create_window(Maus* mw)
 	return true;
 }
 
-void maus_fb_clear(Maus* mw, MausColor col)
+void maus_clear(Maus* mw, MausColor col)
 {
 	uint32_t col_up = MAUS_UNPACK_COL(col);
 	uint32_t pxs = mw->height * mw->width;

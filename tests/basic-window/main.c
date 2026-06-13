@@ -102,7 +102,7 @@ int main(void)
 			resize = false;
 		}
 
-		maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
+		maus_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
 
 		uint32_t red_unpacked = MAUS_UNPACK_COL(red);
 		if (mx >= 0 && my >= 0 &&
