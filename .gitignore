@@ -1,7 +1,12 @@
 *.o
 *.swp
+*.a
+
+compile_flags.txt
 
 fenster/
 
-tests/basic-window/basic-window
+examples/basic-window/basic-window
+
+config.mk
 

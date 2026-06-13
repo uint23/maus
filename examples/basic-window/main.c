@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "../../maus.h"
-#include "../../maus_font.h"
+#include "maus.h"
+#include "maus_font.h"
 
 int mx, my;
 bool cur_visible = true;

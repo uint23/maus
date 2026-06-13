@@ -21,6 +21,8 @@
 	#define BACKEND_X11
 
 	#endif
+#else
+#define MAUS_WARN_BACKEND_AUTO_SEL 0
 #endif /* auto selection */
 
 #if defined(BACKEND_X11)
