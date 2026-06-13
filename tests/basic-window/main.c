@@ -11,6 +11,9 @@ bool cur_locked = false;
 bool mb1_pressed = false;
 char txtbuf[4096] = {'\0'};
 int current_char = 0;
+bool resize = false;
+int rszw;
+int rszh;
 
 void handle_ev(Maus* mw, MausEvent* ev)
 {
@@ -67,7 +70,9 @@ void handle_ev(Maus* mw, MausEvent* ev)
 
 		} break;
 		case MAUS_EV_RESIZE: {
-			maus_resize(mw, ev->resize.width, ev->resize.height);
+			resize = true;
+			rszw = ev->resize.width;
+			rszh = ev->resize.height;
 		} break;
 		case MAUS_EV_NONE:
 			break;
@@ -90,6 +95,13 @@ int main(void)
 	for (;;) {
 		while (maus_event_poll(mw, &ev))
 			(void) handle_ev(mw, &ev);
+
+		/* only resize window once per fram */
+		if (resize) {
+			maus_resize(mw, rszw, rszh);
+			resize = false;
+		}
+
 		maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
 
 		if (mx >= 0 && my >= 0 &&
