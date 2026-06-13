@@ -504,11 +504,10 @@ bool maus_create_window(Maus* mw)
 
 void maus_fb_clear(Maus* mw, MausColor col)
 {
-	for (uint32_t y = 0; y < mw->height; y++) {
-		uint32_t* row = mw->bfb + (y * mw->stride);
-		for (uint32_t x = 0; x < mw->width; x++)
-			row[x] = (uint32_t) MAUS_UNPACK_COL(col);
-	}
+	uint32_t col_up = MAUS_UNPACK_COL(col);
+	uint32_t pxs = mw->height * mw->width;
+	for (uint32_t i = 0; i < pxs; i++)
+		mw->bfb[i] = col_up;
 }
 
 Maus* maus_init(const char* title, int x, int y, int width, int height)
