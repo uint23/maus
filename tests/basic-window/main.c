@@ -52,7 +52,7 @@ void handle_ev(Maus* mw, MausEvent* ev)
 				break;
 
 			if (current_char + 1 < 4095 && current_char >= 0)
-				txtbuf[current_char++] = ev->key.key;
+				txtbuf[current_char++] = ev->key.text;
 			else
 				maus_log(stderr, "txtbuf full");
 
@@ -104,18 +104,19 @@ int main(void)
 
 		maus_fb_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
 
+		uint32_t red_unpacked = MAUS_UNPACK_COL(red);
 		if (mx >= 0 && my >= 0 &&
 		    mx < (int32_t)mw->width &&
 		    my < (int32_t)mw->height && mb1_pressed) {
-			MAUS_PIXEL_AT(mw, mx, my) = MAUS_UNPACK_COL(red);
+			MAUS_PIXEL_AT(mw, mx, my) = red_unpacked;
 		}
 
-		red.b++;
 		for (uint32_t y = 0; y < mw->height/2; y++) {
 			for (uint32_t x = 0; x < mw->width/2; x++) {
-				MAUS_PIXEL_AT(mw, x, y) = MAUS_UNPACK_COL(red);
+				MAUS_PIXEL_AT(mw, x, y) = red_unpacked;
 			}
 		}
+		red.b++;
 
 		/* maus_draw_text(mw, font, 700, 50, "maus font\nloading example", red); */
 
