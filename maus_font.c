@@ -31,21 +31,36 @@ void maus_draw_text(Maus* mw, MausFont* font, int32_t x, int32_t y,
 			continue;
 		}
 
-		/* origins to start drawing glpyh from */
+		/* origins to start drawing glyph from */
 		int32_t gox = cx + g->xoff;
 		int32_t goy = cy + font->asc - g->h - g->yoff;
 
+		/* starting coordinates */
+		int sgx = (-gox > 0) ? -gox : 0;
+		int sgy = (-goy > 0) ? -goy : 0;
+
+		/* ending coordinates. if glyph runs over right/bottom, clamp it */
+		int end_gx = (mw->width - gox < g->w) ? (mw->width - gox) : g->w;
+		int end_gy = (mw->height - goy < g->h) ?(mw->height - goy) : g->h;
+
+		/* cull glyphs which start off screen */
+		if (sgx >= end_gx || sgy >= end_gy) {
+			cx += g->adv;
+			continue;
+		}
+
 		/* "blit" font to framebuffer */
-		for (uint16_t gy = 0; gy < g->h; gy++) {
-			for (uint16_t gx = 0; gx < g->w; gx++) {
-				bool solid = g->bmp[gy * g->w + gx] > 0;
-				if (solid) {
-					int32_t dstx = gox + gx;
-					int32_t dsty = goy + gy;
-					if (dstx >= 0 && dstx < (int)mw->width &&
-					    dsty >= 0 && dsty < (int)mw->height) {
-						MAUS_PIXEL_AT(mw, dstx, dsty) = col_up;
-					}
+		for (int gy = sgy; gy < end_gy; gy++) {
+			int dsty = goy + gy;
+
+			/* calculate row pointer once per scanline */
+			uint32_t* row = mw->bfb + (dsty * mw->stride);
+			int offset = gy * g->w;
+
+			for (int gx = sgx; gx < end_gx; gx++) {
+				if (g->bmp[offset + gx] > 0) {
+					int dstx = gox + gx;
+					row[dstx] = col_up;
 				}
 			}
 		}
