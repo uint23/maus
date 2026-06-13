@@ -480,6 +480,8 @@ bool maus_create_window(Maus* mw)
 		ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask |
 		ButtonReleaseMask | PointerMotionMask | StructureNotifyMask
 	);
+	/* no black flashing when resizing */
+	XSetWindowBackgroundPixmap(dpy, *win, None);
 
 	/* atoms */
 	be->atoms[MAUS_ATOM_WM_DELETE_WINDOW] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
@@ -603,7 +605,7 @@ bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
 {
 	MausBackend* be = &mw->backend;
 	if (width == 0 || height == 0 ||
-	    mw->width == width || mw->height == height)
+	    (mw->width == width && mw->height == height))
 		return false;
 
 	fb_destroy(mw);
