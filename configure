@@ -4,7 +4,7 @@ for arg do
 	case "$arg" in
 		--backend=*) backend="${arg#*=}" ;;
 		--help)
-			echo "Usage: ./configure [--backend=x11|wayland|win|mac]"
+			echo "Usage: ./configure [--backend=x11|wayland|mac]"
 			exit 0
 			;;
 		*)
@@ -29,13 +29,6 @@ case "$backend" in
 		;;
 	wayland)
 		# TODO
-		;;
-	win)
-		echo "CONF_CPPFLAGS = -DBACKEND_WIN" >> config.mk
-		echo "CONF_LDFLAGS = -lgdi32 -luser32" >> config.mk
-		echo "CONF_SRC = source/maus_win.c" >> config.mk
-		echo "CONF_OBJS = build/maus_win.o" >> config.mk
-		echo "CONF_LIB_NAME = libmaus_win.a" >> config.mk
 		;;
 	mac)
 		# TODO
