@@ -2,6 +2,8 @@
 *.swp
 *.a
 *.exe
+*.obj
+*.lib
 
 compile_flags.txt
 
