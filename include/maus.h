@@ -8,9 +8,16 @@
 #include "maus_input.h"
 
 /* auto selection */
-#if !defined(BACKEND_WIN) && !defined(BACKEND_MAC) && \
-    !defined(BACKEND_X11) && !defined(BACKEND_WAY)
+#if (!defined(BACKEND_WIN) && !defined(BACKEND_MAC) && \
+    !defined(BACKEND_X11) && !defined(BACKEND_WAY)) || \
+    defined(BACKEND_AUTO)
+
+#ifdef BACKEND_AUTO
+#define MAUS_WARN_BACKEND_AUTO_SEL 0
+#else
 #define MAUS_WARN_BACKEND_AUTO_SEL 1
+#endif /* BACKEND_AUTO */
+
 	#if defined(_WIN32)
 	#define BACKEND_WIN
 
