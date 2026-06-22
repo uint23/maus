@@ -1,6 +1,7 @@
 *.o
 *.swp
 *.a
+*.exe
 
 compile_flags.txt
 
