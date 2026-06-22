@@ -32,7 +32,7 @@
 	/* ... */
 
 #elif defined(BACKEND_WIN)
-	/* ... */
+	#include "maus_win.h"
 
 #elif defined(BACKEND_MAC)
 	/* ... */
