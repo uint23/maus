@@ -31,7 +31,11 @@ case "$backend" in
 		# TODO
 		;;
 	win)
-		# TODO
+		echo "CONF_CPPFLAGS = -DBACKEND_WIN" >> config.mk
+		echo "CONF_LDFLAGS = -lgdi32 -luser32" >> config.mk
+		echo "CONF_SRC = source/maus_win.c" >> config.mk
+		echo "CONF_OBJS = build/maus_win.o" >> config.mk
+		echo "CONF_LIB_NAME = libmaus_win.a" >> config.mk
 		;;
 	mac)
 		# TODO
