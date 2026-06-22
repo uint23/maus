@@ -31,7 +31,7 @@ void maus_die(const char* fmt, ...)
 
 uint64_t maus_get_time_ns(void)
 {
-#if !defined(WIN32)
+#if !defined(_WIN32)
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
@@ -71,10 +71,14 @@ void maus_target_fps(Maus* mw, uint32_t fps)
 	/* if early finish, sleep for the remaining time balance */
 	if (elapsed < ns_frame) {
 		uint64_t sleep = ns_frame - elapsed;
+	#if !defined(_WIN32)
 		struct timespec ts;
 		ts.tv_sec = sleep / 1000000000ULL;
 		ts.tv_nsec = sleep % 1000000000ULL;
 		nanosleep(&ts, NULL);
+	#else /* unix */
+		Sleep((DWORD)((sleep + 999999ULL) / 1000000ULL));
+	#endif /* platform */
 	}
 
 	mw->frame_time_last = maus_get_time_ns();
