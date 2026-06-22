@@ -1,6 +1,7 @@
 #if !defined(BACKEND_WIN)
 #define _POSIX_C_SOURCE 199309L
-#else /* windows */
+#else
+#include <windows.h>
 #endif
 
 #include <stdarg.h>
@@ -29,10 +30,24 @@ void maus_die(const char* fmt, ...)
 }
 
 uint64_t maus_get_time_ns(void)
-{ /* TODO unix only right now */
+{
+#if !defined(WIN32)
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+#else
+	static LARGE_INTEGER frequency = {0};
+	if (frequency.QuadPart == 0)
+		QueryPerformanceFrequency(&frequency);
+
+	LARGE_INTEGER counter;
+	QueryPerformanceCounter(&counter);
+
+	uint64_t sec = counter.QuadPart / frequency.QuadPart;
+	uint64_t rem = counter.QuadPart % frequency.QuadPart;
+
+	return (sec * 1000000000ULL) + ((rem * 1000000000ULL) / frequency.QuadPart);
+#endif
 }
 
 void maus_log(FILE* fd, const char* fmt, ...)
