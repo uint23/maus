@@ -468,6 +468,45 @@ bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
 
 void maus_cur_set_mode(Maus* mw, MausCursorState state)
 {
+	MausBackend* be = &mw->backend;
+	HWND hwnd = be->hwnd;
 
+	if (!hwnd) {
+		maus_log(stderr, "hwnd is NULL");
+		return;
+	}
+
+	/* show cursor */
+	if (state == MAUS_CURSOR_STATE_VISIBLE) {
+		while (ShowCursor(TRUE) < 0);
+		return;
+	}
+
+	/* hide cursor */
+	if (state == MAUS_CURSOR_STATE_HIDDEN) {
+		while (ShowCursor(FALSE) >= 0);
+		return;
+	}
+
+
+	/* lock cursor */
+	if (state == MAUS_CURSOR_STATE_LOCKED) {
+		RECT r;
+		GetClientRect(hwnd, &r);
+		MapWindowPoints(hwnd, NULL, (POINT*)&r, 2);
+
+		if (!ClipCursor(&r)) {
+			maus_log(stderr, "failed to grab mouse pointer");
+			return;
+		}
+
+		return;
+	}
+
+	/* unlock cursor */
+	if (state == MAUS_CURSOR_STATE_FREE) {
+		ClipCursor(NULL);
+		return;
+	}
 }
 
