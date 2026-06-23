@@ -269,12 +269,31 @@ char* maus_clipboard_get_text(Maus* mw)
 
 void maus_close(Maus* mw)
 {
-
+	MausBackend* be = &mw->backend;
+	fb_destroy(mw);
+	if (mw->bfb) {
+		free(mw->bfb);
+		mw->bfb = NULL;
+	}
+	if (mw->clipboard) {
+		free(mw->clipboard);
+		mw->clipboard = NULL;
+	}
+	if (be->hwnd)
+		(void) maus_close_window(mw);
 }
 
 bool maus_close_window(Maus* mw)
 {
+	MausBackend* be = &mw->backend;
 
+	if (be->hwnd) {
+		DestroyWindow(be->hwnd);
+		be->hwnd = NULL;
+		return true;
+	}
+
+	return false;
 }
 
 
