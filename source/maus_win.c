@@ -376,7 +376,13 @@ void maus_event_wait(Maus* mw, MausEvent* ev)
 
 void maus_present(Maus* mw)
 {
+	MausBackend* be = &mw->backend;
+	if (!be->hwnd || !be->memdc)
+		return;
+	HDC wdc = GetDC(be->hwnd);
 
+	BitBlt(wdc, 0, 0, mw->width, mw->height, be->memdc, 0, 0, SRCCOPY);
+	ReleaseDC(be->hwnd, wdc);
 }
 
 bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
