@@ -246,6 +246,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		return 0;
 	}
 
+	if (msg == WM_SIZE) {
+		Maus* mw = (Maus*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		if (mw) {
+			MausBackend* be = &mw->backend;
+			be->resized = true;
+			be->rw = LOWORD(lp);
+			be->rh = HIWORD(lp);
+		}
+		return 0;
+	}
+
 	return DefWindowProc(hwnd, msg, wp, lp);
 }
 
@@ -363,6 +374,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 
 bool maus_event_poll(Maus* mw, MausEvent* ev)
 {
+	MausBackend* be = &mw->backend;
 	MSG msg;
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 		TranslateMessage(&msg);
@@ -373,11 +385,21 @@ bool maus_event_poll(Maus* mw, MausEvent* ev)
 			return true;
 	}
 
+	/* WM_SIZE doesnt is handled separately */
+	if (be->resized) {
+		be->resized = false;
+		ev->type = MAUS_EV_RESIZE;
+		ev->resize.width = be->rw;
+		ev->resize.height = be->rh;
+		return true;
+	}
+
 	return false;
 }
 
 void maus_event_wait(Maus* mw, MausEvent* ev)
 {
+	MausBackend* be = &mw->backend;
 	MSG msg;
 
 	for (;;) {
@@ -390,6 +412,15 @@ void maus_event_wait(Maus* mw, MausEvent* ev)
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 		ev->type = MAUS_EV_NONE;
+
+		/* WM_SIZE doesnt is handled separately */
+                if (be->resized) {
+			be->resized = false;
+			ev->type = MAUS_EV_RESIZE;
+			ev->resize.width = be->rw;
+			ev->resize.height = be->rh;
+			return;
+		}
 
 		if (handle_event(&msg, ev, mw))
 			return;
@@ -412,7 +443,27 @@ void maus_present(Maus* mw)
 
 bool maus_resize(Maus* mw, uint32_t width, uint32_t height)
 {
+	if (width == 0 || height == 0 ||
+	    (mw->width == width && mw->height == height))
+		return false;
 
+	fb_destroy(mw);
+	if (mw->bfb) {
+		free(mw->bfb);
+		mw->bfb = NULL;
+	}
+
+	mw->width = width;
+	mw->height = height;
+
+	if (!fb_create(mw))
+		return false;
+
+	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
+	if (!mw->bfb)
+		return false;
+
+	return true;
 }
 
 void maus_cur_set_mode(Maus* mw, MausCursorState state)
