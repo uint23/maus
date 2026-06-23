@@ -251,7 +251,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
 void maus_clear(Maus* mw, MausColor col)
 {
-
+	uint32_t col_up = MAUS_UNPACK_COL(col);
+	uint32_t pxs = mw->height * mw->width;
+	for (uint32_t i = 0; i < pxs; i++)
+		mw->bfb[i] = col_up;
 }
 
 void maus_clipboard_set_text(Maus* mw, const char* text)
@@ -380,6 +383,9 @@ void maus_present(Maus* mw)
 	if (!be->hwnd || !be->memdc)
 		return;
 	HDC wdc = GetDC(be->hwnd);
+
+	uint32_t bytes = mw->stride * mw->height * sizeof(uint32_t);
+	memcpy(mw->fb, mw->bfb, bytes);
 
 	BitBlt(wdc, 0, 0, mw->width, mw->height, be->memdc, 0, 0, SRCCOPY);
 	ReleaseDC(be->hwnd, wdc);
