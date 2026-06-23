@@ -1,10 +1,42 @@
 #include <windows.h>
+#include <windowsx.h>
 
 #include "maus.h"
+#include "maus_input.h"
 #include "maus_win.h"
 
+typedef struct {
+	UINT    vk;
+	MausKey maus;
+} KeyMapEntry;
+
 static bool fb_create(Maus* mw);
+static void fb_destroy(Maus* mw);
+static bool handle_event(const MSG* msg, MausEvent* ev, Maus* mw);
+static MausKey vk_to_mauskey(UINT vk);
+static UINT resolve_lr(UINT vk, LPARAM lparam);
+static char translate_text(UINT vk, UINT scan);
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
+
+static const KeyMapEntry keymap[] = {
+	{ VK_BACK,     MAUS_KEY_BACKSPACE }, { VK_TAB,      MAUS_KEY_TAB },
+	{ VK_RETURN,   MAUS_KEY_ENTER },     { VK_ESCAPE,   MAUS_KEY_ESCAPE },
+	{ VK_SPACE,    MAUS_KEY_SPACE },     { VK_DELETE,   MAUS_KEY_DELETE },
+	{ VK_LEFT,     MAUS_KEY_LEFT },      { VK_RIGHT,    MAUS_KEY_RIGHT },
+	{ VK_UP,       MAUS_KEY_UP },        { VK_DOWN,     MAUS_KEY_DOWN },
+	{ VK_HOME,     MAUS_KEY_HOME },      { VK_END,      MAUS_KEY_END },
+	{ VK_PRIOR,    MAUS_KEY_PAGE_UP },   { VK_NEXT,     MAUS_KEY_PAGE_DOWN },
+	{ VK_INSERT,   MAUS_KEY_INSERT },    { VK_CAPITAL,  MAUS_KEY_CAPS_LOCK },
+	{ VK_NUMLOCK,  MAUS_KEY_NUM_LOCK },  { VK_SCROLL,   MAUS_KEY_SCROLL_LOCK },
+	{ VK_PAUSE,    MAUS_KEY_PAUSE },     { VK_SNAPSHOT, MAUS_KEY_PRINT_SCREEN },
+	{ VK_APPS,     MAUS_KEY_MENU },      { VK_LSHIFT,   MAUS_KEY_SHIFT_L },
+	{ VK_RSHIFT,   MAUS_KEY_SHIFT_R },   { VK_LCONTROL, MAUS_KEY_CONTROL_L },
+	{ VK_RCONTROL, MAUS_KEY_CONTROL_R }, { VK_LMENU,    MAUS_KEY_ALT_L },
+	{ VK_RMENU,    MAUS_KEY_ALT_R },     { VK_LWIN,     MAUS_KEY_SUPER_L },
+	{ VK_RWIN,     MAUS_KEY_SUPER_R },   { VK_ADD,      MAUS_KEY_KP_ADD },
+	{ VK_SUBTRACT, MAUS_KEY_KP_SUBTRACT },{ VK_MULTIPLY, MAUS_KEY_KP_MULTIPLY },
+	{ VK_DIVIDE,   MAUS_KEY_KP_DIVIDE }, { VK_DECIMAL,  MAUS_KEY_KP_DECIMAL },
+};
 
 static bool fb_create(Maus* mw)
 {
@@ -54,6 +86,157 @@ static void fb_destroy(Maus* mw)
 
 	mw->fb = NULL;
 	mw->stride = 0;
+}
+
+static bool handle_event(const MSG* msg, MausEvent* ev, Maus* mw)
+{
+	UINT scan;
+	UINT vk;
+	int delta;
+	MausMouseButton mbtype;
+
+	switch (msg->message) {
+		case WM_QUIT:
+			ev->type = MAUS_EV_CLOSE;
+			return true;
+
+		case WM_MOUSEMOVE:
+			ev->type = MAUS_EV_MOUSE_MOTION;
+			ev->mouse.motion.x = GET_X_LPARAM(msg->lParam);
+			ev->mouse.motion.y = GET_Y_LPARAM(msg->lParam);
+			return true;
+
+		case WM_LBUTTONDOWN:
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = MAUS_MOUSE_BUTTON_LEFT;
+			ev->mouse.button.pressed = true;
+			mw->mouse_buttons[MAUS_MOUSE_BUTTON_LEFT] = true;
+			return true;
+		case WM_LBUTTONUP:
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = MAUS_MOUSE_BUTTON_LEFT;
+			ev->mouse.button.pressed = false;
+			mw->mouse_buttons[MAUS_MOUSE_BUTTON_LEFT] = false;
+			return true;
+
+		case WM_RBUTTONDOWN:
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = MAUS_MOUSE_BUTTON_RIGHT;
+			ev->mouse.button.pressed = true;
+			mw->mouse_buttons[MAUS_MOUSE_BUTTON_RIGHT] = true;
+			return true;
+		case WM_RBUTTONUP:
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = MAUS_MOUSE_BUTTON_RIGHT;
+			ev->mouse.button.pressed = false;
+			mw->mouse_buttons[MAUS_MOUSE_BUTTON_RIGHT] = false;
+			return true;
+
+		case WM_MBUTTONDOWN:
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = MAUS_MOUSE_BUTTON_MIDDLE;
+			ev->mouse.button.pressed = true;
+			mw->mouse_buttons[MAUS_MOUSE_BUTTON_MIDDLE] = true;
+			return true;
+		case WM_MBUTTONUP:
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = MAUS_MOUSE_BUTTON_MIDDLE;
+			ev->mouse.button.pressed = false;
+			mw->mouse_buttons[MAUS_MOUSE_BUTTON_MIDDLE] = false;
+			return true;
+
+		case WM_MOUSEWHEEL:
+			delta = GET_WHEEL_DELTA_WPARAM(msg->wParam);
+			mbtype = (delta > 0) ? MAUS_MOUSE_BUTTON_SCROLL_UP
+			                     : MAUS_MOUSE_BUTTON_SCROLL_DOWN;
+			ev->type = MAUS_EV_MOUSE_BUTTON;
+			ev->mouse.button.button = mbtype;
+			ev->mouse.button.pressed = true;
+			return true;
+
+		case WM_KEYDOWN:
+		case WM_SYSKEYDOWN:
+			scan = (UINT)((msg->lParam >> 16) & 0xFF);
+			vk = resolve_lr((UINT)msg->wParam, msg->lParam);
+
+			ev->type = MAUS_EV_KEY;
+			ev->key.code = (uint32_t)msg->wParam;
+			ev->key.pressed = true;
+			ev->key.key = vk_to_mauskey(vk);
+			ev->key.text = translate_text((UINT)msg->wParam, scan);
+
+			if (ev->key.code < MAUS_KEYCODE_LAST)
+				mw->key_codes[ev->key.code] = true;
+			if (ev->key.key != MAUS_KEY_NONE)
+				mw->key_syms[ev->key.key] = true;
+			return true;
+
+		case WM_KEYUP:
+		case WM_SYSKEYUP:
+			vk = resolve_lr((UINT)msg->wParam, msg->lParam);
+
+			ev->type = MAUS_EV_KEY;
+			ev->key.code = (uint32_t)msg->wParam;
+			ev->key.pressed = false;
+			ev->key.key = vk_to_mauskey(vk);
+			ev->key.text = 0;
+
+			if (ev->key.code < MAUS_KEYCODE_LAST)
+				mw->key_codes[ev->key.code] = false;
+			if (ev->key.key != MAUS_KEY_NONE)
+				mw->key_syms[ev->key.key] = false;
+			return true;
+	}
+
+	return false;
+}
+
+static MausKey vk_to_mauskey(UINT vk)
+{
+	if (vk >= 'A' && vk <= 'Z')
+		return (MausKey)(MAUS_KEY_A + (vk - 'A'));
+	if (vk >= '0' && vk <= '9')
+		return (MausKey)(MAUS_KEY_0 + (vk - '0'));
+	if (vk >= VK_F1 && vk <= VK_F12)
+		return (MausKey)(MAUS_KEY_F1 + (vk - VK_F1));
+	if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9)
+		return (MausKey)(MAUS_KEY_KP_0 + (vk - VK_NUMPAD0));
+
+	for (size_t i = 0; i < sizeof(keymap) / sizeof(keymap[0]); i++) {
+		if (keymap[i].vk == vk)
+			return keymap[i].maus;
+	}
+
+	return MAUS_KEY_NONE;
+}
+
+static UINT resolve_lr(UINT vk, LPARAM lparam)
+{
+	UINT scan = (UINT)((lparam >> 16) & 0xFF);
+	int  ext  = (lparam & (1 << 24)) != 0;
+
+	if (vk == VK_SHIFT)
+		return MapVirtualKey(scan, MAPVK_VSC_TO_VK_EX);
+	if (vk == VK_CONTROL)
+		return ext ? VK_RCONTROL : VK_LCONTROL;
+	if (vk == VK_MENU)
+		return ext ? VK_RMENU : VK_LMENU;
+
+	return vk;
+}
+
+static char translate_text(UINT vk, UINT scan)
+{
+	BYTE state[256];
+	if (!GetKeyboardState(state))
+		return 0;
+
+	WCHAR buf[4];
+	int n = ToUnicode(vk, scan, state, buf, 4, 0);
+	if (n == 1 && buf[0] < 0x80)
+		return (buf[0] == '\r') ? '\n' : (char)buf[0];
+
+	return 0;
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -158,12 +341,37 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 
 bool maus_event_poll(Maus* mw, MausEvent* ev)
 {
+	MSG msg;
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+		ev->type = MAUS_EV_NONE;
 
+		if (handle_event(&msg, ev, mw))
+			return true;
+	}
+
+	return false;
 }
 
 void maus_event_wait(Maus* mw, MausEvent* ev)
 {
+	MSG msg;
 
+	for (;;) {
+		int r = GetMessage(&msg, NULL, 0, 0);
+		if (r <= 0) {
+			ev->type = MAUS_EV_CLOSE;
+			return;
+		}
+
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+		ev->type = MAUS_EV_NONE;
+
+		if (handle_event(&msg, ev, mw))
+			return;
+	}
 }
 
 void maus_present(Maus* mw)
