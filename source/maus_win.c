@@ -270,12 +270,58 @@ void maus_clear(Maus* mw, MausColor col)
 
 void maus_clipboard_set_text(Maus* mw, const char* text)
 {
+	MausBackend* be = &mw->backend;
+	if (!text || !OpenClipboard(be->hwnd))
+		return;
+	EmptyClipboard();
+	size_t len = strlen(text) + 1;
+	HGLOBAL hmem = GlobalAlloc(GMEM_MOVEABLE, len);
+	if (hmem) {
+		void* ptr = GlobalLock(hmem);
+		if (ptr) {
+			memcpy(ptr, text, len);
+			GlobalUnlock(hmem);
 
+			if (!SetClipboardData(CF_TEXT, hmem))
+				GlobalFree(hmem); /* failed */
+		}
+		else {
+			GlobalFree(hmem);
+		}
+	}
+
+	CloseClipboard();
 }
 
 char* maus_clipboard_get_text(Maus* mw)
 {
+	MausBackend* be = &mw->backend;
+	if (!OpenClipboard(be->hwnd))
+		return NULL;
 
+	HANDLE hmem = GetClipboardData(CF_TEXT);
+	if (!hmem) {
+		CloseClipboard();
+		return NULL;
+	}
+
+	const char* text = GlobalLock(hmem);
+	if (text) {
+		if (mw->clipboard) {
+			free(mw->clipboard);
+			mw->clipboard = NULL;
+		}
+
+		size_t len = strlen(text) + 1;
+		mw->clipboard = malloc(len);
+		if (mw->clipboard)
+			memcpy(mw->clipboard, text, len);
+
+		GlobalUnlock(hmem);
+	}
+
+	CloseClipboard();
+	return mw->clipboard;
 }
 
 void maus_close(Maus* mw)
