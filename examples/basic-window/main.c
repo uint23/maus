@@ -74,6 +74,8 @@ void handle_ev(Maus* mw, MausEvent* ev)
 			rszw = ev->resize.width;
 			rszh = ev->resize.height;
 		} break;
+		case MAUS_EV_REDRAW:
+			break;
 		case MAUS_EV_NONE:
 			break;
 	}
