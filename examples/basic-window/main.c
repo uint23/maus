@@ -25,7 +25,7 @@ void handle_ev(Maus* mw, MausEvent* ev)
 		case MAUS_EV_KEY: {
 			(void)0;
 
-			bool* keys = mw->key_syms;
+			int8_t* keys = mw->key_syms;
 			if (keys[MAUS_KEY_CONTROL_L] && keys[MAUS_KEY_Q]) {
 				maus_close(mw);
 				exit(EXIT_SUCCESS);

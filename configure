@@ -2,14 +2,16 @@
 
 for arg do
 	case "$arg" in
-		--backend=*) backend="${arg#*=}" ;;
 		--help)
-			echo "Usage: ./configure [--backend=x11|wayland|mac]"
+			echo "Usage: ./configure [x11|wayland|mac]"
 			exit 0
 			;;
 		*)
-			echo "Unknown argument: $arg"
-			exit 1
+			if [ -n "$backend" ]; then
+				echo "Usage: ./configure [x11|wayland|mac]"
+				exit 1
+			fi
+			backend="$arg"
 			;;
 	esac
 done

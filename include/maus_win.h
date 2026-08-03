@@ -1,7 +1,6 @@
 #ifndef MAUS_WIN_H
 #define MAUS_WIN_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include <windows.h>
@@ -12,7 +11,7 @@ typedef struct {
 	HDC       hdc;
 	HBITMAP   hbm;
 	HDC       memdc;
-	bool      resized;
+	int8_t    resized;
 	uint32_t  rw;
 	uint32_t  rh;
 } MausBackend;

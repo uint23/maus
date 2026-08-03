@@ -1,14 +1,14 @@
 #ifndef MAUS_X11_H
 #define MAUS_X11_H
 
-#include <stdbool.h>
+#include <stdint.h>
 
 #include <X11/Xlib.h>
 #include <X11/extensions/XShm.h>
 
 typedef enum {
 	MAUS_ATOM_WM_DELETE_WINDOW,
-	MAUS_ATOM_LAST,
+	MAUS_ATOM_LAST
 } MausX11Atoms;
 
 typedef struct {
@@ -19,7 +19,7 @@ typedef struct {
 	GC       gc;
 
 	XShmSegmentInfo shm;
-	bool            shmat;
+	int8_t          shmat;
 	XImage*         image; /* TODO: XImage path */
 } MausBackend;
 
