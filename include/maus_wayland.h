@@ -12,19 +12,45 @@ struct wl_registry;
 struct wl_compositor;
 struct wl_surface;
 struct wl_shm;
+struct wl_seat;
+struct wl_pointer;
+struct wl_keyboard;
 
 struct xdg_wm_base;
 struct xdg_surface;
 struct xdg_toplevel;
 
 typedef struct {
+	int8_t  pending;
+	int32_t type;
+
+	uint32_t width;
+	uint32_t height;
+
+	uint32_t mouse_x;
+	uint32_t mouse_y;
+	uint32_t mouse_button;
+	uint8_t  mouse_pressed;
+
+	uint32_t key_code;
+	uint8_t  key_pressed;
+} MausEventPending;
+
+typedef struct {
 	struct wl_display*    display;
 	struct wl_buffer*     buffer;
 	struct wl_compositor* compositor;
 	struct wl_surface*    surface;
-	struct wl_shm*        shm;
-	void*                 shm_data;
-	size_t                shm_size;
+
+	struct wl_shm* shm;
+	void*          shm_data;
+	size_t         shm_size;
+
+	struct wl_seat*     seat;
+	struct wl_pointer*  pointer;
+	struct wl_keyboard* keyboard;
+
+	MausEventPending pending;
 
 	struct xdg_wm_base*  wm_base;
 	struct xdg_surface*  xdg_surface;
