@@ -6,6 +6,7 @@ CC = cc
 AR = ar
 ARFLAGS = -r -c
 CFLAGS = -ansi -pedantic-errors -Wall -Wextra -O2
+WL_CFLAGS = -std=c99 -Wall -Wextra -O2
 CPPFLAGS = ${CONF_CPPFLAGS} -Iinclude -Ibuild
 LDFLAGS = ${CONF_LDFLAGS}
 
@@ -42,7 +43,7 @@ build/maus_x11.o: source/maus_x11.c include/maus.h include/maus_x11.h config.mk
 # Wayland
 build/maus_wayland.o: source/maus_wayland.c include/maus.h include/maus_wayland.h build/xdg-shell-client-protocol.h config.mk
 	mkdir -p build
-	${CC} ${CFLAGS} ${CPPFLAGS} -c source/maus_wayland.c -o $@
+	${CC} ${WL_CFLAGS} ${CPPFLAGS} -c source/maus_wayland.c -o $@
 build/xdg-shell-client-protocol.h:
 	mkdir -p build
 	wayland-scanner client-header ${PROTOS}/stable/xdg-shell/xdg-shell.xml $@
@@ -51,7 +52,7 @@ build/xdg-shell-protocol.c:
 	wayland-scanner private-code ${PROTOS}/stable/xdg-shell/xdg-shell.xml $@
 build/xdg-shell-protocol.o: build/xdg-shell-protocol.c build/xdg-shell-client-protocol.h
 	mkdir -p build
-	${CC} ${CFLAGS} ${CPPFLAGS} -c build/xdg-shell-protocol.c -o $@
+	${CC} ${WL_CFLAGS} ${CPPFLAGS} -c build/xdg-shell-protocol.c -o $@
 
 clean:
 	rm -rf build ${LIB_NAME} config.mk compile_flags.txt
