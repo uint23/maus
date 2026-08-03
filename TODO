@@ -1,4 +1,5 @@
 Maus:
+[ ] Rename mw->ctx internally
 [?] Cursor warping
 [?] Custom cursor
 

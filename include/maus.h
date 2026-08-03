@@ -131,7 +131,8 @@ void maus_clipboard_set_text(Maus* mw, const char* text);
 /* get text from system clipboard */
 char* maus_clipboard_get_text(Maus* mw);
 
-/* close a Maus. returns 0 on fail */
+/* close a Maus. returns 0 on fail
+   TODO also free mw */
 void maus_close(Maus* mw);
 
 /* close a window without the whole Maus. returns 0 on fail */
