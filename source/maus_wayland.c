@@ -152,12 +152,74 @@ char* maus_clipboard_get_text(Maus* mw)
 
 void maus_close(Maus* mw)
 {
+	MausBackend* be;
 
+	if (!mw)
+		return;
+
+	be = &mw->backend;
+
+	if (be->buffer)
+		wl_buffer_destroy(be->buffer);
+
+	if (be->shm_data && be->shm_size > 0)
+		munmap(be->shm_data, be->shm_size);
+
+	if (be->xdg_toplevel)
+		xdg_toplevel_destroy(be->xdg_toplevel);
+
+	if (be->xdg_surface)
+		xdg_surface_destroy(be->xdg_surface);
+
+	if (be->surface)
+		wl_surface_destroy(be->surface);
+
+	if (be->wm_base)
+		xdg_wm_base_destroy(be->wm_base);
+
+	if (be->shm)
+		wl_shm_destroy(be->shm);
+
+	if (be->compositor)
+		wl_compositor_destroy(be->compositor);
+
+	if (be->registry)
+		wl_registry_destroy(be->registry);
+
+	if (be->display) {
+		wl_display_flush(be->display);
+		wl_display_disconnect(be->display);
+	}
+
+	free(mw->bfb);
+	free(mw);
 }
 
 int8_t maus_close_window(Maus* mw)
 {
+	MausBackend* be = &mw->backend;
 
+	if (be->buffer)
+		wl_buffer_destroy(be->buffer);
+	if (be->shm_data && be->shm_size > 0)
+		munmap(be->shm_data, be->shm_size);
+
+	if (be->xdg_toplevel)
+		xdg_toplevel_destroy(be->xdg_toplevel);
+	if (be->xdg_surface)
+		xdg_surface_destroy(be->xdg_surface);
+	if (be->surface)
+		wl_surface_destroy(be->surface);
+
+	be->buffer = NULL;
+	be->shm_data = NULL;
+	be->shm_size = 0;
+	be->xdg_toplevel = NULL;
+	be->xdg_surface = NULL;
+	be->surface = NULL;
+	be->configured = 0;
+
+	return 1;
 }
 
 int8_t maus_create_window(Maus* mw)
