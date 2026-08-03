@@ -63,8 +63,8 @@ typedef enum {
 } MausKey;
 
 typedef struct {
-	int32_t        x;
-	int32_t        y;
+	int32_t x;
+	int32_t y;
 } MausCursor;
 
 typedef enum {

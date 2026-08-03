@@ -36,7 +36,7 @@
 	#include "maus_x11.h"
 
 #elif defined(BACKEND_WAY)
-	/* ... */
+	#include "maus_wayland.h"
 
 #elif defined(BACKEND_WIN)
 	#include "maus_win.h"
@@ -67,10 +67,10 @@ typedef enum {
 } MausEventType;
 
 typedef struct {
-	uint8_t        a;
-	uint8_t        r;
-	uint8_t        g;
-	uint8_t        b;
+	uint8_t a;
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
 } MausColor;
 
 typedef struct {
@@ -78,10 +78,10 @@ typedef struct {
 
 	union {
 		struct {
-			uint32_t  code; /* raw, backend keycode */
-			MausKey   key;  /* logical, mapped key */
-			char      text; /* translated text from key */
-			bool      pressed;
+			uint32_t code; /* raw, backend keycode */
+			MausKey  key;  /* logical, mapped key */
+			char     text; /* translated text from key */
+			bool     pressed;
 		} key;
 
 		struct {
@@ -91,8 +91,8 @@ typedef struct {
 			} button;
 
 			struct {
-				int32_t  x;
-				int32_t  y;
+				int32_t x;
+				int32_t y;
 			} motion;
 		} mouse;
 
@@ -104,25 +104,25 @@ typedef struct {
 } MausEvent;
 
 typedef struct {
-	MausBackend    backend;
-	uint64_t       frame_time_last;
-	char*          clipboard;
+	MausBackend backend;
+	uint64_t    frame_time_last;
+	char*       clipboard;
 
-	uint32_t*      fb;  /* front frame buffer */
-	uint32_t*      bfb; /* back frame buffer */
-	uint32_t       stride;
+	uint32_t* fb;  /* front frame buffer */
+	uint32_t* bfb; /* back frame buffer */
+	uint32_t  stride;
 
-	const char*    title;
-	uint32_t       width;
-	uint32_t       height;
-	int32_t        x;
-	int32_t        y;
+	const char* title;
+	uint32_t    width;
+	uint32_t    height;
+	int32_t     x;
+	int32_t     y;
 
-	bool           key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
-	bool           key_syms[MAUS_KEY_LAST];      /* logical keys */
+	bool key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
+	bool key_syms[MAUS_KEY_LAST];      /* logical keys */
 
-	MausCursor     cursor;
-	bool           mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
+	MausCursor cursor;
+	bool       mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
 } Maus;
 
 /* clear screen with color: `col` */

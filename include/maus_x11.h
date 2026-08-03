@@ -12,15 +12,15 @@ typedef enum {
 } MausX11Atoms;
 
 typedef struct {
-	Display*       display;
-	Window         root;
-	Window         win;
-	Atom           atoms[MAUS_ATOM_LAST];
-	GC             gc;
+	Display* display;
+	Window   root;
+	Window   win;
+	Atom     atoms[MAUS_ATOM_LAST];
+	GC       gc;
 
-	XImage*        image;
 	XShmSegmentInfo shm;
-	bool           shmat;
+	bool            shmat;
+	XImage*         image; /* TODO: XImage path */
 } MausBackend;
 
 #endif /* MAUS_X11_H */
