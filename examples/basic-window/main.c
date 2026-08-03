@@ -14,6 +14,7 @@ int current_char = 0;
 bool resize = false;
 int rszw;
 int rszh;
+MausColor white = {255, 255, 255, 255};
 
 void handle_ev(Maus* mw, MausEvent* ev)
 {
@@ -59,6 +60,16 @@ void handle_ev(Maus* mw, MausEvent* ev)
 			break;
 		}
 		case MAUS_EV_MOUSE_BUTTON: {
+			if (ev->mouse.button.button == MAUS_MOUSE_BUTTON_SCROLL_UP) {
+				white.r += 5;
+				white.g += 5;
+				white.b += 5;
+			}
+			else if (ev->mouse.button.button == MAUS_MOUSE_BUTTON_SCROLL_DOWN) {
+				white.r -= 5;
+				white.g -= 5;
+				white.b -= 5;
+			}
 			mb1_pressed =
 			mw->mouse_buttons[MAUS_MOUSE_BUTTON_LEFT] ?
 			true : false;
@@ -104,7 +115,7 @@ int main(void)
 			resize = false;
 		}
 
-		maus_clear(mw, MAUS_COL_RGBA(255, 255, 255, 255));
+		maus_clear(mw, white);
 
 		uint32_t red_unpacked = MAUS_UNPACK_COL(red);
 		if (mx >= 0 && my >= 0 &&
