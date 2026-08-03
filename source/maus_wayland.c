@@ -131,7 +131,13 @@ static int8_t fb_create_shm(size_t size)
 
 void maus_clear(Maus* mw, MausColor col)
 {
+	uint32_t up = MAUS_UNPACK_COL(col);
+	uint32_t pxs = mw->height * mw->width;
 
+	uint32_t i;
+
+	for (i = 0; i < pxs; i++)
+		mw->bfb[i] = up;
 }
 
 void maus_clipboard_set_text(Maus* mw, const char* text)
