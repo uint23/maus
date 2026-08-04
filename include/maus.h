@@ -171,6 +171,9 @@ void maus_present(Maus* mw);
    else 0 */
 int8_t maus_resize(Maus* mw, uint32_t width, uint32_t height);
 
+/* sleep for `ms` milliseconds */
+void maus_sleep(uint32_t ms);
+
 /* cap framerate to targetted fps */
 void maus_target_fps(Maus* mw, uint32_t fps);
 
@@ -178,4 +181,3 @@ void maus_target_fps(Maus* mw, uint32_t fps);
 void maus_cur_set_mode(Maus* mw, MausCursorState state);
 
 #endif /* MAUSWIN_H */
-

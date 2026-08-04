@@ -64,16 +64,25 @@ void maus_log(FILE* fd, const char* fmt, ...)
 	va_end(ap);
 }
 
+void maus_sleep(uint32_t ms)
+{
+#if !defined(_WIN32)
+	struct timespec ts;
+
+	ts.tv_sec = ms / 1000;
+	ts.tv_nsec = (ms % 1000) * 1000000;
+	nanosleep(&ts, NULL);
+#else
+	Sleep((DWORD)ms);
+#endif
+}
+
 void maus_target_fps(Maus* mw, uint32_t fps)
 {
 	uint64_t ns_frame;
 	uint64_t cur_time;
 	uint64_t elapsed;
 	uint64_t sleep;
-
-	#if !defined(_WIN32)
-	struct timespec ts;
-	#endif
 
 	if (fps == 0)
 		return;
@@ -85,13 +94,7 @@ void maus_target_fps(Maus* mw, uint32_t fps)
 	/* if early finish, sleep for the remaining time balance */
 	if (elapsed < ns_frame) {
 		sleep = ns_frame - elapsed;
-	#if !defined(_WIN32)
-		ts.tv_sec = sleep / 1000000000;
-		ts.tv_nsec = sleep % 1000000000;
-		nanosleep(&ts, NULL);
-	#else
-		Sleep((DWORD)((sleep + 999999) / 1000000));
-	#endif
+		maus_sleep((uint32_t)((sleep + 999999) / 1000000));
 	}
 
 	mw->frame_time_last = maus_get_time_ns();
