@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -6,13 +5,13 @@
 #include "maus_font.h"
 
 int mx, my;
-bool cur_visible = true;
-bool cur_locked = false;
-bool cur_relative = false;
-bool mb1_pressed = false;
+int cur_visible = 1;
+int cur_locked = 0;
+int cur_relative = 0;
+int mb1_pressed = 0;
 char txtbuf[4096] = {'\0'};
 int current_char = 0;
-bool resize = false;
+int resize = 0;
 int rszw;
 int rszh;
 MausColor white = {255, 255, 255, 255};
@@ -25,9 +24,8 @@ void handle_ev(Maus* mw, MausEvent* ev)
 			exit(EXIT_SUCCESS);
 			break;
 		case MAUS_EV_KEY: {
-			(void)0;
-
 			int8_t* keys = mw->key_syms;
+
 			if (keys[MAUS_KEY_CONTROL_L] && keys[MAUS_KEY_Q]) {
 				maus_close(mw);
 				exit(EXIT_SUCCESS);
@@ -54,7 +52,7 @@ void handle_ev(Maus* mw, MausEvent* ev)
 				cur_relative = !cur_relative;
 			}
 
-			if (ev->key.pressed == false)
+			if (ev->key.pressed == 0)
 				break;
 
 			if (!((ev->key.key >= 32 && ev->key.key <= 126) || ev->key.key == '\n'))
@@ -80,7 +78,7 @@ void handle_ev(Maus* mw, MausEvent* ev)
 			}
 			mb1_pressed =
 			mw->mouse_buttons[MAUS_MOUSE_BUTTON_LEFT] ?
-			true : false;
+			1 : 0;
 			break;
 		}
 		case MAUS_EV_MOUSE_MOTION: {
@@ -89,7 +87,7 @@ void handle_ev(Maus* mw, MausEvent* ev)
 
 		} break;
 		case MAUS_EV_RESIZE: {
-			resize = true;
+			resize = 1;
 			rszw = ev->resize.width;
 			rszh = ev->resize.height;
 		} break;
@@ -102,16 +100,22 @@ void handle_ev(Maus* mw, MausEvent* ev)
 
 int main(void)
 {
-	Maus* mw = maus_init("basic window", 0, 0, 800, 600);
+	Maus* mw;
+	MausFont* font;
+	MausEvent ev;
+	MausColor red = { 255, 255, 0, 0 };
+	uint32_t red_unpacked;
+	uint32_t x;
+	uint32_t y;
+
+	mw = maus_init("basic window", 0, 0, 800, 600);
 	if (!mw)
 		return EXIT_FAILURE;
 	maus_create_window(mw);
-	MausFont* font = maus_font_load("assets/fonts/font1.bdf");
+	font = maus_font_load("assets/fonts/font1.bdf");
 	if (!font)
 		return EXIT_FAILURE;
 
-	MausEvent ev;
-	MausColor red = { 255, 255, 0, 0 };
 	/* unsigned long long ticks = 0; */
 	for (;;) {
 		while (maus_event_poll(mw, &ev))
@@ -120,20 +124,20 @@ int main(void)
 		/* only resize window once per fram */
 		if (resize) {
 			maus_resize(mw, rszw, rszh);
-			resize = false;
+			resize = 0;
 		}
 
 		maus_clear(mw, white);
 
-		uint32_t red_unpacked = MAUS_UNPACK_COL(red);
+		red_unpacked = MAUS_UNPACK_COL(red);
 		if (mx >= 0 && my >= 0 &&
 		    mx < (int32_t)mw->width &&
 		    my < (int32_t)mw->height && mb1_pressed) {
 			MAUS_PIXEL_AT(mw, mx, my) = red_unpacked;
 		}
 
-		for (uint32_t y = 0; y < mw->height/2; y++) {
-			for (uint32_t x = 0; x < mw->width/2; x++) {
+		for (y = 0; y < mw->height/2; y++) {
+			for (x = 0; x < mw->width/2; x++) {
 				MAUS_PIXEL_AT(mw, x, y) = red_unpacked;
 			}
 		}

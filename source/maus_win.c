@@ -194,6 +194,8 @@ static int8_t handle_event(const MSG* msg, MausEvent* ev, Maus* mw)
 
 static MausKey vk_to_mauskey(UINT vk)
 {
+	size_t i;
+
 	if (vk >= 'A' && vk <= 'Z')
 		return (MausKey)(MAUS_KEY_A + (vk - 'A'));
 	if (vk >= '0' && vk <= '9')
@@ -203,7 +205,7 @@ static MausKey vk_to_mauskey(UINT vk)
 	if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9)
 		return (MausKey)(MAUS_KEY_KP_0 + (vk - VK_NUMPAD0));
 
-	for (size_t i = 0; i < sizeof(keymap) / sizeof(keymap[0]); i++) {
+	for (i = 0; i < sizeof(keymap) / sizeof(keymap[0]); i++) {
 		if (keymap[i].vk == vk)
 			return keymap[i].maus;
 	}
