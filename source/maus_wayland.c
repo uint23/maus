@@ -744,12 +744,14 @@ void maus_clear(Maus* mw, MausColor col)
 		mw->bfb[i] = up;
 }
 
+/* TODO */
 void maus_clipboard_set_text(Maus* mw, const char* text)
 {
 	(void)mw;
 	(void)text;
 }
 
+/* TODO */
 char* maus_clipboard_get_text(Maus* mw)
 {
 	(void)mw;
