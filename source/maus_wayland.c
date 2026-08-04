@@ -68,7 +68,12 @@ static struct wl_keyboard_listener keyboard_listener = {
 	keyboard_modifiers, keyboard_repeat_info
 };
 
-static void registry_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name) { }
+static void registry_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name)
+{
+	(void)data;
+	(void)wl_registry;
+	(void)name;
+}
 
 static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, uint32_t serial)
 {
@@ -109,10 +114,21 @@ static void xdg_toplevel_close(void* data, struct xdg_toplevel* xdg_toplevel)
 }
 
 static void xdg_toplevel_configure_bounds(void* data, struct xdg_toplevel* xdg_toplevel,
-                                          int32_t width, int32_t height) { }
+                                          int32_t width, int32_t height)
+{
+	(void)data;
+	(void)xdg_toplevel;
+	(void)width;
+	(void)height;
+}
 
 static void xdg_toplevel_wm_capabilities(void* data, struct xdg_toplevel* xdg_toplevel,
-                                         struct wl_array* capabilities) { }
+                                         struct wl_array* capabilities)
+{
+	(void)data;
+	(void)xdg_toplevel;
+	(void)capabilities;
+}
 
 static void wm_base_ping(void* data, struct xdg_wm_base* wm_base, uint32_t serial)
 {
@@ -167,7 +183,12 @@ static void seat_capabilities(void* data, struct wl_seat* seat, uint32_t capabil
 	}
 }
 
-static void seat_name(void* data, struct wl_seat* seat, const char* name) { }
+static void seat_name(void* data, struct wl_seat* seat, const char* name)
+{
+	(void)data;
+	(void)seat;
+	(void)name;
+}
 
 static void pointer_enter(void* data, struct wl_pointer* pointer, uint32_t serial,
                           struct wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy)
@@ -187,7 +208,13 @@ static void pointer_enter(void* data, struct wl_pointer* pointer, uint32_t seria
 }
 
 static void pointer_leave(void* data, struct wl_pointer* pointer, uint32_t serial,
-                          struct wl_surface* surface) { }
+                          struct wl_surface* surface)
+{
+	(void)data;
+	(void)pointer;
+	(void)serial;
+	(void)surface;
+}
 
 static void pointer_motion(void* data, struct wl_pointer* pointer, uint32_t time,
                            wl_fixed_t sx, wl_fixed_t sy)
@@ -242,21 +269,52 @@ static void pointer_axis(void* data, struct wl_pointer* pointer, uint32_t time,
 	mw->backend.pending.mouse_pressed = 1;
 }
 
-static void pointer_frame(void* data, struct wl_pointer* pointer) { }
+static void pointer_frame(void* data, struct wl_pointer* pointer)
+{
+	(void)data;
+	(void)pointer;
+}
 
-static void pointer_axis_source(void* data, struct wl_pointer* pointer, uint32_t axis_source) { }
+static void pointer_axis_source(void* data, struct wl_pointer* pointer, uint32_t axis_source)
+{
+	(void)data;
+	(void)pointer;
+	(void)axis_source;
+}
 
 static void pointer_axis_stop(void* data, struct wl_pointer* pointer, uint32_t time, uint32_t axis) {
+	(void)data;
+	(void)pointer;
+	(void)time;
+	(void)axis;
 }
 
 static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, uint32_t axis,
-                                  int32_t discrete) { }
+                                  int32_t discrete)
+{
+	(void)data;
+	(void)pointer;
+	(void)axis;
+	(void)discrete;
+}
 
 static void pointer_axis_value120(void* data, struct wl_pointer* pointer, uint32_t axis,
-                                  int32_t value120) { }
+                                  int32_t value120)
+{
+	(void)data;
+	(void)pointer;
+	(void)axis;
+	(void)value120;
+}
 
 static void pointer_axis_relative_direction(void* data, struct wl_pointer* pointer,
-                                            uint32_t axis, uint32_t direction) { }
+                                            uint32_t axis, uint32_t direction)
+{
+	(void)data;
+	(void)pointer;
+	(void)axis;
+	(void)direction;
+}
 
 static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t format,
                             int32_t fd, uint32_t size)
@@ -299,10 +357,23 @@ static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t f
 }
 
 static void keyboard_enter(void* data, struct wl_keyboard* keyboard, uint32_t serial,
-                           struct wl_surface* surface, struct wl_array* keys) { }
+                           struct wl_surface* surface, struct wl_array* keys)
+{
+	(void)data;
+	(void)keyboard;
+	(void)serial;
+	(void)surface;
+	(void)keys;
+}
 
 static void keyboard_leave(void* data, struct wl_keyboard* keyboard, uint32_t serial,
-                           struct wl_surface* surface) { }
+                           struct wl_surface* surface)
+{
+	(void)data;
+	(void)keyboard;
+	(void)serial;
+	(void)surface;
+}
 
 static void keyboard_key(void* data, struct wl_keyboard* keyboard, uint32_t serial,
                          uint32_t time, uint32_t key, uint32_t state)
@@ -366,7 +437,13 @@ static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_
 }
 
 static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
-                                 int32_t rate, int32_t delay) { }
+                                 int32_t rate, int32_t delay)
+{
+	(void)data;
+	(void)keyboard;
+	(void)rate;
+	(void)delay;
+}
 
 
 static int8_t cursor_init(Maus* mw)
@@ -634,12 +711,14 @@ void maus_clear(Maus* mw, MausColor col)
 
 void maus_clipboard_set_text(Maus* mw, const char* text)
 {
-
+	(void)mw;
+	(void)text;
 }
 
 char* maus_clipboard_get_text(Maus* mw)
 {
-
+	(void)mw;
+	return NULL;
 }
 
 void maus_close(Maus* mw)
