@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define MAUS_EVQ_MAX 64
+
 /* must forward declare so that other
    ANSI abiding files arent affected */
 struct wl_display;
@@ -90,6 +92,17 @@ typedef struct {
 
 
 	MausEventPending pending;
+	MausEventPending evq[MAUS_EVQ_MAX];
+	uint32_t evq_head;
+	uint32_t evq_tail;
+	uint32_t evq_count;
+
+	int32_t  repeat_rate;
+	int32_t  repeat_delay;
+	uint32_t repeat_key_code;
+	uint32_t repeat_key_sym;
+	char     repeat_key_text;
+	uint64_t repeat_next_ns;
 
 	struct xdg_wm_base*  wm_base;
 	struct xdg_surface*  xdg_surface;

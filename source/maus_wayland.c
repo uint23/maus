@@ -54,6 +54,12 @@ static void cursor_show(Maus* mw);
 static void cursor_hide(Maus* mw);
 static void cursor_relative(Maus* mw);
 static void cursor_absolute(Maus* mw);
+static void event_push_pending(Maus* mw);
+static int8_t event_pop(Maus* mw, MausEventPending* ev);
+static void event_push_key(Maus* mw, uint32_t code, uint32_t sym, char text, uint8_t pressed);
+static int8_t repeat_push_due(Maus* mw);
+static int32_t repeat_timeout_ms(Maus* mw);
+static int8_t display_read(Maus* mw, int timeout_ms);
 static MausKey keysym_to_mauskey(xkb_keysym_t sym);
 static MausMouseButton wl_button_to_maus(uint32_t button);
 static void wl_buffer_release(void* data, struct wl_buffer* buffer);
@@ -89,6 +95,50 @@ static void wl_buffer_release(void* data, struct wl_buffer* buffer)
 	wb->busy = 0;
 }
 
+static void event_push_pending(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	if (!be->pending.pending)
+		return;
+
+	if (be->evq_count == MAUS_EVQ_MAX) {
+		be->evq_head = (be->evq_head + 1) % MAUS_EVQ_MAX;
+		be->evq_count--;
+	}
+
+	be->evq[be->evq_tail] = be->pending;
+	be->evq_tail = (be->evq_tail + 1) % MAUS_EVQ_MAX;
+	be->evq_count++;
+	be->pending.pending = 0;
+}
+
+static int8_t event_pop(Maus* mw, MausEventPending* ev)
+{
+	MausBackend* be = &mw->backend;
+
+	if (be->evq_count == 0)
+		return 0;
+
+	*ev = be->evq[be->evq_head];
+	be->evq_head = (be->evq_head + 1) % MAUS_EVQ_MAX;
+	be->evq_count--;
+	return 1;
+}
+
+static void event_push_key(Maus* mw, uint32_t code, uint32_t sym, char text, uint8_t pressed)
+{
+	MausBackend* be = &mw->backend;
+
+	be->pending.pending = 1;
+	be->pending.type = MAUS_EV_KEY;
+	be->pending.key_code = code;
+	be->pending.key_sym = sym;
+	be->pending.key_text = text;
+	be->pending.key_pressed = pressed;
+	event_push_pending(mw);
+}
+
 static void registry_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name)
 {
 	(void)data;
@@ -105,6 +155,7 @@ static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, u
 		mw->backend.pending.pending = 1;
 		mw->backend.pending.type = MAUS_EV_REDRAW;
 	}
+	event_push_pending(mw);
 }
 
 static void xdg_toplevel_configure(void* data, struct xdg_toplevel* xdg_toplevel,
@@ -122,6 +173,7 @@ static void xdg_toplevel_configure(void* data, struct xdg_toplevel* xdg_toplevel
 	mw->backend.pending.type = MAUS_EV_RESIZE;
 	mw->backend.pending.width = width;
 	mw->backend.pending.height = height;
+	event_push_pending(mw);
 }
 
 static void xdg_toplevel_close(void* data, struct xdg_toplevel* xdg_toplevel)
@@ -132,6 +184,7 @@ static void xdg_toplevel_close(void* data, struct xdg_toplevel* xdg_toplevel)
 
 	mw->backend.pending.pending = 1;
 	mw->backend.pending.type = MAUS_EV_CLOSE;
+	event_push_pending(mw);
 }
 
 static void xdg_toplevel_configure_bounds(void* data, struct xdg_toplevel* xdg_toplevel,
@@ -268,6 +321,7 @@ static void pointer_motion(void* data, struct wl_pointer* pointer, uint32_t time
 	be->mouse_x = x;
 	be->mouse_y = y;
 	be->mouse_pos_set = 1;
+	event_push_pending(mw);
 }
 
 static void pointer_button(void* data, struct wl_pointer* pointer, uint32_t serial,
@@ -288,6 +342,7 @@ static void pointer_button(void* data, struct wl_pointer* pointer, uint32_t seri
 
 	if (mb != MAUS_MOUSE_BUTTON_NONE)
 		mw->mouse_buttons[mb] = mw->backend.pending.mouse_pressed;
+	event_push_pending(mw);
 }
 
 static void pointer_axis(void* data, struct wl_pointer* pointer, uint32_t time,
@@ -307,6 +362,7 @@ static void pointer_axis(void* data, struct wl_pointer* pointer, uint32_t time,
 		? MAUS_MOUSE_BUTTON_SCROLL_DOWN
 		: MAUS_MOUSE_BUTTON_SCROLL_UP;
 	mw->backend.pending.mouse_pressed = 1;
+	event_push_pending(mw);
 }
 
 static void pointer_frame(void* data, struct wl_pointer* pointer)
@@ -375,6 +431,7 @@ static void relative_pointer_motion(void* data, struct zwp_relative_pointer_v1* 
 	mw->backend.pending.mouse_y = wl_fixed_to_int(dy);
 	mw->backend.pending.mouse_dx = wl_fixed_to_int(dx);
 	mw->backend.pending.mouse_dy = wl_fixed_to_int(dy);
+	event_push_pending(mw);
 }
 
 static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t format,
@@ -430,10 +487,13 @@ static void keyboard_enter(void* data, struct wl_keyboard* keyboard, uint32_t se
 static void keyboard_leave(void* data, struct wl_keyboard* keyboard, uint32_t serial,
                            struct wl_surface* surface)
 {
-	(void)data;
+	Maus* mw = data;
+
 	(void)keyboard;
 	(void)serial;
 	(void)surface;
+
+	mw->backend.repeat_key_code = 0;
 }
 
 static void keyboard_key(void* data, struct wl_keyboard* keyboard, uint32_t serial,
@@ -443,8 +503,10 @@ static void keyboard_key(void* data, struct wl_keyboard* keyboard, uint32_t seri
 	MausBackend* be = &mw->backend;
 	uint32_t code;
 	xkb_keysym_t sym;
+	MausKey maus_key;
 	char text[8];
 	int len;
+	uint8_t pressed;
 
 	(void)keyboard;
 	(void)serial;
@@ -463,19 +525,32 @@ static void keyboard_key(void* data, struct wl_keyboard* keyboard, uint32_t seri
 		}
 	}
 
-	be->pending.pending = 1;
-	be->pending.type = MAUS_EV_KEY;
-	be->pending.key_code = code;
-	be->pending.key_sym = keysym_to_mauskey(sym);
-	be->pending.key_text = text[0];
-	if (be->pending.key_sym == MAUS_KEY_ENTER)
-		be->pending.key_text = '\n';
-	be->pending.key_pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
+	maus_key = keysym_to_mauskey(sym);
+	if (maus_key == MAUS_KEY_ENTER)
+		text[0] = '\n';
+	pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
+	event_push_key(mw, code, maus_key, text[0], pressed);
 
 	if (code < MAUS_KEYCODE_LAST)
-		mw->key_codes[code] = be->pending.key_pressed;
-	if (be->pending.key_sym != MAUS_KEY_NONE)
-		mw->key_syms[be->pending.key_sym] = be->pending.key_pressed;
+		mw->key_codes[code] = pressed;
+	if (maus_key != MAUS_KEY_NONE)
+		mw->key_syms[maus_key] = pressed;
+
+	if (!pressed) {
+		if (be->repeat_key_code == code)
+			be->repeat_key_code = 0;
+		return;
+	}
+
+	if (be->repeat_rate > 0 && be->xkb_keymap &&
+	    xkb_keymap_key_repeats(be->xkb_keymap, code)) {
+		be->repeat_key_code = code;
+		be->repeat_key_sym = maus_key;
+		be->repeat_key_text = text[0];
+		be->repeat_next_ns = maus_get_time_ns() + be->repeat_delay * 1000000;
+	}
+	else
+		be->repeat_key_code = 0;
 }
 
 static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_t serial,
@@ -500,10 +575,85 @@ static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_
 static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
                                  int32_t rate, int32_t delay)
 {
-	(void)data;
+	Maus* mw = data;
+
 	(void)keyboard;
-	(void)rate;
-	(void)delay;
+
+	mw->backend.repeat_rate = rate;
+	mw->backend.repeat_delay = delay;
+	if (rate <= 0)
+		mw->backend.repeat_key_code = 0;
+}
+
+static int8_t repeat_push_due(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+	uint64_t now;
+	uint64_t interval;
+
+	if (be->repeat_key_code == 0 || be->repeat_rate <= 0)
+		return 0;
+
+	now = maus_get_time_ns();
+	if (now < be->repeat_next_ns)
+		return 0;
+
+	event_push_key(mw, be->repeat_key_code, be->repeat_key_sym, be->repeat_key_text, 1);
+	interval = 1000000000 / be->repeat_rate;
+	do {
+		be->repeat_next_ns += interval;
+	} while (be->repeat_next_ns <= now);
+
+	return 1;
+}
+
+static int32_t repeat_timeout_ms(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+	uint64_t now;
+	uint64_t diff;
+
+	if (be->repeat_key_code == 0 || be->repeat_rate <= 0)
+		return -1;
+
+	now = maus_get_time_ns();
+	if (now >= be->repeat_next_ns)
+		return 0;
+
+	diff = be->repeat_next_ns - now;
+	/* round xto nearest ms */
+	return (int32_t)((diff + 999999) / 1000000);
+}
+
+static int8_t display_read(Maus* mw, int timeout_ms)
+{
+	MausBackend* be = &mw->backend;
+	struct pollfd pfd;
+	int ret;
+
+	if (wl_display_prepare_read(be->display) != 0) {
+		wl_display_dispatch_pending(be->display);
+		return 1;
+	}
+
+	wl_display_flush(be->display);
+
+	pfd.fd = wl_display_get_fd(be->display);
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+
+	ret = poll(&pfd, 1, timeout_ms);
+	if (ret > 0 && (pfd.revents & POLLIN)) {
+		if (wl_display_read_events(be->display) == -1) {
+			wl_display_cancel_read(be->display);
+			return -1;
+		}
+		wl_display_dispatch_pending(be->display);
+		return 1;
+	}
+
+	wl_display_cancel_read(be->display);
+	return 0;
 }
 
 
@@ -748,40 +898,39 @@ static void fb_destroy(Maus* mw)
 
 static int8_t handle_event(Maus* mw, MausEvent* ev)
 {
-	MausBackend* be = &mw->backend;
+	MausEventPending pending;
 
-	if (!be->pending.pending)
+	if (!event_pop(mw, &pending))
 		return 0;
 
-	ev->type = be->pending.type;
-	be->pending.pending = 0;
+	ev->type = pending.type;
 
 	switch (ev->type) {
 	case MAUS_EV_CLOSE:
 		return 1;
 
 	case MAUS_EV_RESIZE:
-		ev->resize.width = be->pending.width;
-		ev->resize.height = be->pending.height;
+		ev->resize.width = pending.width;
+		ev->resize.height = pending.height;
 		return 1;
 
 	case MAUS_EV_MOUSE_MOTION:
-		ev->mouse.motion.x = be->pending.mouse_x;
-		ev->mouse.motion.y = be->pending.mouse_y;
-		ev->mouse.motion.dx = be->pending.mouse_dx;
-		ev->mouse.motion.dy = be->pending.mouse_dy;
+		ev->mouse.motion.x = pending.mouse_x;
+		ev->mouse.motion.y = pending.mouse_y;
+		ev->mouse.motion.dx = pending.mouse_dx;
+		ev->mouse.motion.dy = pending.mouse_dy;
 		return 1;
 
 	case MAUS_EV_MOUSE_BUTTON:
-		ev->mouse.button.button = be->pending.mouse_button;
-		ev->mouse.button.pressed = be->pending.mouse_pressed;
+		ev->mouse.button.button = pending.mouse_button;
+		ev->mouse.button.pressed = pending.mouse_pressed;
 		return 1;
 
 	case MAUS_EV_KEY:
-		ev->key.code = be->pending.key_code;
-		ev->key.pressed = be->pending.key_pressed;
-		ev->key.key = be->pending.key_sym;
-		ev->key.text = be->pending.key_text;
+		ev->key.code = pending.key_code;
+		ev->key.pressed = pending.key_pressed;
+		ev->key.key = pending.key_sym;
+		ev->key.text = pending.key_text;
 		return 1;
 
 	default:
@@ -1052,10 +1201,13 @@ close:
 int8_t maus_event_poll(Maus* mw, MausEvent* ev)
 {
 	MausBackend* be = &mw->backend;
-	struct pollfd pfd;
+	int8_t read;
 
 	ev->type = MAUS_EV_NONE;
 
+	if (repeat_push_due(mw) && handle_event(mw, ev))
+		return 1;
+
 	if (handle_event(mw, ev))
 		return 1;
 
@@ -1063,30 +1215,15 @@ int8_t maus_event_poll(Maus* mw, MausEvent* ev)
 	if (handle_event(mw, ev))
 		return 1;
 
-	if (wl_display_prepare_read(be->display) != 0) {
-		wl_display_dispatch_pending(be->display);
-		return handle_event(mw, ev);
+	read = display_read(mw, 0);
+	if (read == -1) {
+		ev->type = MAUS_EV_CLOSE;
+		return 1;
 	}
-
-	wl_display_flush(be->display);
-
-	pfd.fd = wl_display_get_fd(be->display);
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-	
-	if (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN)) {
-		if (wl_display_read_events(be->display) == -1) {
-			ev->type = MAUS_EV_CLOSE;
-			wl_display_cancel_read(be->display);
-			return 1;
-		}
-	}
-	else {
-		wl_display_cancel_read(be->display);
+	if (read == 0)
 		return 0;
-	}
-
-	wl_display_dispatch_pending(be->display);
+	if (repeat_push_due(mw) && handle_event(mw, ev))
+		return 1;
 
 	return handle_event(mw, ev);
 }
@@ -1094,12 +1231,27 @@ int8_t maus_event_poll(Maus* mw, MausEvent* ev)
 void maus_event_wait(Maus* mw, MausEvent* ev)
 {
 	MausBackend* be = &mw->backend;
+	int32_t timeout;
+	int8_t read;
 
 	ev->type = MAUS_EV_NONE;
 
 	for (;;) {
+		if (repeat_push_due(mw) && handle_event(mw, ev))
+			return;
+
 		if (handle_event(mw, ev))
 			return;
+
+		timeout = repeat_timeout_ms(mw);
+		if (timeout >= 0) {
+			read = display_read(mw, timeout);
+			if (read == -1) {
+				ev->type = MAUS_EV_CLOSE;
+				return;
+			}
+			continue;
+		}
 
 		if (wl_display_dispatch(be->display) == -1) {
 			ev->type = MAUS_EV_CLOSE;
