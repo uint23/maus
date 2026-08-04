@@ -32,8 +32,8 @@ case "$backend" in
 	wayland)
 		echo "CONF_CPPFLAGS = -DBACKEND_WAY $(pkg-config --cflags wayland-client wayland-cursor xkbcommon)" >> config.mk
 		echo "CONF_LDFLAGS = $(pkg-config --libs wayland-client wayland-cursor xkbcommon)" >> config.mk
-		echo "CONF_SRC = source/maus_wayland.c build/xdg-shell-protocol.c" >> config.mk
-		echo "CONF_OBJS = build/maus_wayland.o build/xdg-shell-protocol.o" >> config.mk
+		echo "CONF_SRC = source/maus_wayland.c build/xdg-shell-protocol.c build/pointer-constraints-unstable-v1-protocol.c" >> config.mk
+		echo "CONF_OBJS = build/maus_wayland.o build/xdg-shell-protocol.o build/pointer-constraints-unstable-v1-protocol.o" >> config.mk
 		echo "CONF_LIB_NAME = libmaus_wayland.a" >> config.mk
 		echo "PROTOS = $(pkg-config --variable=pkgdatadir wayland-protocols)" >> config.mk
 		;;

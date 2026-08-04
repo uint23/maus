@@ -10,6 +10,7 @@
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <xdg-shell-client-protocol.h>
+#include <pointer-constraints-unstable-v1-client-protocol.h>
 #include <xkbcommon/xkbcommon.h>
 
 #include "maus.h"
@@ -46,6 +47,8 @@ static void registry_global(void* data, struct wl_registry* registry, uint32_t n
 static void cursor_destroy(Maus* mw);
 static void cursor_hide(Maus* mw);
 static int8_t cursor_init(Maus* mw);
+static void cursor_lock(Maus* mw);
+static void cursor_unlock(Maus* mw);
 static void cursor_show(Maus* mw);
 static MausKey keysym_to_mauskey(xkb_keysym_t sym);
 static MausMouseButton wl_button_to_maus(uint32_t button);
@@ -157,6 +160,10 @@ static void registry_global(void* data, struct wl_registry* registry,
 		be->seat = wl_registry_bind(registry, name, &wl_seat_interface, 5);
 		wl_seat_add_listener(be->seat, &seat_listener, mw);
 	}
+	else if (strcmp(interface, zwp_pointer_constraints_v1_interface.name) == 0)
+		be->pointer_constraints = wl_registry_bind(
+			registry, name, &zwp_pointer_constraints_v1_interface, 1
+		);
 }
 
 static void seat_capabilities(void* data, struct wl_seat* seat, uint32_t capabilities)
@@ -489,6 +496,34 @@ static void cursor_hide(Maus* mw)
 	wl_pointer_set_cursor(be->pointer, be->pointer_enter_serial, NULL, 0, 0);
 }
 
+static void cursor_lock(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	if (be->locked_pointer)
+		return;
+	if (!be->pointer_constraints || !be->surface || !be->pointer)
+		return;
+
+	be->locked_pointer = zwp_pointer_constraints_v1_confine_pointer(
+		be->pointer_constraints, be->surface, be->pointer, NULL,
+		ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT
+	);
+}
+
+static void cursor_unlock(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	if (be->locked_pointer) {
+		zwp_pointer_constraints_v1_lock_pointer(be->locked_pointer);
+		be->locked_pointer = NULL;
+	}
+
+	if (be->cursor_state == MAUS_CURSOR_STATE_VISIBLE)
+		cursor_show(mw);
+}
+
 static void cursor_show(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
@@ -745,6 +780,8 @@ void maus_close(Maus* mw)
 	if (be->surface)
 		wl_surface_destroy(be->surface);
 
+	cursor_unlock(mw);
+
 	if (be->keyboard)
 		wl_keyboard_destroy(be->keyboard);
 
@@ -753,6 +790,9 @@ void maus_close(Maus* mw)
 
 	if (be->seat)
 		wl_seat_destroy(be->seat);
+
+	if (be->pointer_constraints)
+		zwp_pointer_constraints_v1_destroy(be->pointer_constraints);
 
 	if (be->xkb_state)
 		xkb_state_unref(be->xkb_state);
@@ -790,6 +830,7 @@ int8_t maus_close_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
+	cursor_unlock(mw);
 	fb_destroy(mw);
 
 	if (be->xdg_toplevel)
@@ -1011,9 +1052,13 @@ void maus_cur_set_mode(Maus* mw, MausCursorState state)
 		mw->backend.cursor_state = state;
 		break;
 	case MAUS_CURSOR_STATE_LOCKED:
-		/* TODO */
+		mw->backend.cursor_state = state;
+		cursor_lock(mw);
+		break;
 	case MAUS_CURSOR_STATE_FREE:
-		/* TODO */
+		cursor_unlock(mw);
+		mw->backend.cursor_state = MAUS_CURSOR_STATE_VISIBLE;
+		break;
 	default:
 		break;
 	}
