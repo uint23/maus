@@ -22,9 +22,6 @@ deps = []
 c_args = []
 backend_override_options = ['c_std=c89']
 lib_name = 'maus_' + backend
-if backend == 'windows'
-	lib_name = 'maus_win'
-endif
 
 if backend == 'x11'
 	c_args += ['-DBACKEND_X11']
@@ -55,7 +52,7 @@ elif backend == 'windows'
 		cc.find_library('gdi32'),
 		cc.find_library('user32'),
 	]
-	backend_sources += ['source/maus_win.c']
+	backend_sources += ['source/maus_windows.c']
 endif
 
 common = static_library(

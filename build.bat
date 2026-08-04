@@ -15,24 +15,24 @@ exit /b 1
 :: MSVC
 :msvc
 cl /diagnostics:color /nologo /W3 /O2 /Iinclude /DBACKEND_WIN /c ^
-   source/maus.c source/maus_win.c source/maus_font.c source/utils.c
-lib /nologo /OUT:build\libmaus_win.lib *.obj
+   source/maus.c source/maus_windows.c source/maus_font.c source/utils.c
+lib /nologo /OUT:build\libmaus_windows.lib *.obj
 move /Y *.obj build\
 goto :eof
 
 :: GCC
 :gcc
-cc -std=c99 -Wall -Wextra -O2 -Iinclude -DBACKEND_WIN -c ^
-   source/maus.c source/maus_win.c source/maus_font.c source/utils.c
+cc -ansi -pedantic-errors -Wall -Wextra -O2 -Iinclude -DBACKEND_WIN -c ^
+   source/maus.c source/maus_windows.c source/maus_font.c source/utils.c
 move *.o build\
-ar rcs build\libmaus_win.a build\maus.o build\maus_win.o build\maus_font.o build\utils.o
+ar rcs build\libmaus_windows.a build\maus.o build\maus_windows.o build\maus_font.o build\utils.o
 goto :eof
 
 :: GCC
 :clang
-clang -std=c99 -Wall -Wextra -O2 -Iinclude -DBACKEND_WIN -c ^
-   source/maus.c source/maus_win.c source/maus_font.c source/utils.c
+clang -ansi -pedantic-errors -Wall -Wextra -O2 -Iinclude -DBACKEND_WIN -c ^
+   source/maus.c source/maus_windows.c source/maus_font.c source/utils.c
 move *.o build\
-ar rcs build\libmaus_win.a build\maus.o build\maus_win.o build\maus_font.o build\utils.o
+ar rcs build\libmaus_windows.a build\maus.o build\maus_windows.o build\maus_font.o build\utils.o
 goto :eof
 

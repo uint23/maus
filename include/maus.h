@@ -1,5 +1,5 @@
-#ifndef MAUSWIN_H
-#define MAUSWIN_H
+#ifndef MAUS_H
+#define MAUS_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -38,7 +38,7 @@
 	#include "maus_wayland.h"
 
 #elif defined(BACKEND_WIN)
-	#include "maus_win.h"
+	#include "maus_windows.h"
 
 #elif defined(BACKEND_MAC)
 	/* ... */
@@ -180,4 +180,5 @@ void maus_target_fps(Maus* mw, uint32_t fps);
 /* change behavior of mouse based on state passed */
 void maus_cur_set_mode(Maus* mw, MausCursorState state);
 
-#endif /* MAUSWIN_H */
+#endif /* MAUS */
+

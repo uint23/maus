@@ -3,7 +3,7 @@
 
 #include "maus.h"
 #include "maus_input.h"
-#include "maus_win.h"
+#include "maus_windows.h"
 
 typedef struct {
 	UINT    vk;

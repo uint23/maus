@@ -1,5 +1,5 @@
-#ifndef MAUS_WIN_H
-#define MAUS_WIN_H
+#ifndef MAUS_WINDOWS_H
+#define MAUS_WINDOWS_H
 
 #include <stdint.h>
 
@@ -16,5 +16,5 @@ typedef struct {
 	uint32_t  rh;
 } MausBackend;
 
-#endif /* MAUS_WIN_H */
+#endif /* MAUS_WINDOWS_H */
 
