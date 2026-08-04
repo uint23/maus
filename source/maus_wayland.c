@@ -14,54 +14,35 @@
 
 static void registry_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name);
 static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, uint32_t serial);
-static void xdg_toplevel_configure(void* data, struct xdg_toplevel* xdg_toplevel,
-                                   int32_t width, int32_t height, struct wl_array* states);
+static void xdg_toplevel_configure(void* data, struct xdg_toplevel* xdg_toplevel, int32_t width, int32_t height, struct wl_array* states);
 static void xdg_toplevel_close(void* data, struct xdg_toplevel* xdg_toplevel);
-static void xdg_toplevel_configure_bounds(void* data, struct xdg_toplevel* xdg_toplevel,
-                                          int32_t width, int32_t height);
-static void xdg_toplevel_wm_capabilities(void* data, struct xdg_toplevel* xdg_toplevel,
-                                         struct wl_array* capabilities);
+static void xdg_toplevel_configure_bounds(void* data, struct xdg_toplevel* xdg_toplevel, int32_t width, int32_t height);
+static void xdg_toplevel_wm_capabilities(void* data, struct xdg_toplevel* xdg_toplevel, struct wl_array* capabilities);
 static void wm_base_ping(void* data, struct xdg_wm_base* wm_base, uint32_t serial);
 static void seat_capabilities(void* data, struct wl_seat* seat, uint32_t capabilities);
 static void seat_name(void* data, struct wl_seat* seat, const char* name);
-static void pointer_enter(void* data, struct wl_pointer* pointer, uint32_t serial,
-                          struct wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy);
-static void pointer_leave(void* data, struct wl_pointer* pointer, uint32_t serial,
-                          struct wl_surface* surface);
-static void pointer_motion(void* data, struct wl_pointer* pointer, uint32_t time,
-                           wl_fixed_t sx, wl_fixed_t sy);
-static void pointer_button(void* data, struct wl_pointer* pointer, uint32_t serial,
-                           uint32_t time, uint32_t button, uint32_t state);
-static void pointer_axis(void* data, struct wl_pointer* pointer, uint32_t time,
-                         uint32_t axis, wl_fixed_t value);
+static void pointer_enter(void* data, struct wl_pointer* pointer, uint32_t serial, struct wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy);
+static void pointer_leave(void* data, struct wl_pointer* pointer, uint32_t serial, struct wl_surface* surface);
+static void pointer_motion(void* data, struct wl_pointer* pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
+static void pointer_button(void* data, struct wl_pointer* pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
+static void pointer_axis(void* data, struct wl_pointer* pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
 static void pointer_frame(void* data, struct wl_pointer* pointer);
 static void pointer_axis_source(void* data, struct wl_pointer* pointer, uint32_t axis_source);
-static void pointer_axis_stop(void* data, struct wl_pointer* pointer, uint32_t time,
-                              uint32_t axis);
-static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, uint32_t axis,
-                                  int32_t discrete);
-static void pointer_axis_value120(void* data, struct wl_pointer* pointer, uint32_t axis,
-                                  int32_t value120);
-static void pointer_axis_relative_direction(void* data, struct wl_pointer* pointer,
-                                            uint32_t axis, uint32_t direction);
-static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t format,
-                            int32_t fd, uint32_t size);
-static void keyboard_enter(void* data, struct wl_keyboard* keyboard, uint32_t serial,
-                           struct wl_surface* surface, struct wl_array* keys);
-static void keyboard_leave(void* data, struct wl_keyboard* keyboard, uint32_t serial,
-                           struct wl_surface* surface);
-static void keyboard_key(void* data, struct wl_keyboard* keyboard, uint32_t serial,
-                         uint32_t time, uint32_t key, uint32_t state);
-static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_t serial,
-                               uint32_t mods_depressed, uint32_t mods_latched,
-                               uint32_t mods_locked, uint32_t group);
-static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
-                                 int32_t rate, int32_t delay);
-static void registry_global(void* data, struct wl_registry* registry,
-                            uint32_t name, const char* interface,
-                            uint32_t version);
+static void pointer_axis_stop(void* data, struct wl_pointer* pointer, uint32_t time, uint32_t axis);
+static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, uint32_t axis, int32_t discrete);
+static void pointer_axis_value120(void* data, struct wl_pointer* pointer, uint32_t axis, int32_t value120);
+static void pointer_axis_relative_direction(void* data, struct wl_pointer* pointer, uint32_t axis, uint32_t direction);
+static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t format, int32_t fd, uint32_t size);
+static void keyboard_enter(void* data, struct wl_keyboard* keyboard, uint32_t serial, struct wl_surface* surface, struct wl_array* keys);
+static void keyboard_leave(void* data, struct wl_keyboard* keyboard, uint32_t serial, struct wl_surface* surface);
+static void keyboard_key(void* data, struct wl_keyboard* keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
+static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group);
+static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard, int32_t rate, int32_t delay);
+static void registry_global(void* data, struct wl_registry* registry, uint32_t name, const char* interface, uint32_t version);
+
 static MausKey keysym_to_mauskey(xkb_keysym_t sym);
 static MausMouseButton wl_button_to_maus(uint32_t button);
+
 static struct wl_registry_listener registry_listener = { registry_global, registry_global_remove };
 static struct xdg_surface_listener xdg_surface_listener = { xdg_surface_configure };
 static struct xdg_toplevel_listener xdg_toplevel_listener = {
@@ -334,6 +315,8 @@ static void keyboard_key(void* data, struct wl_keyboard* keyboard, uint32_t seri
 	be->pending.key_code = code;
 	be->pending.key_sym = keysym_to_mauskey(sym);
 	be->pending.key_text = text[0];
+	if (be->pending.key_sym == MAUS_KEY_ENTER)
+		be->pending.key_text = '\n';
 	be->pending.key_pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
 
 	if (code < MAUS_KEYCODE_LAST)
