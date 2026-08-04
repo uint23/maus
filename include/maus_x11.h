@@ -18,6 +18,9 @@ typedef struct {
 	Atom     atoms[MAUS_ATOM_LAST];
 	GC       gc;
 
+	int8_t cur_rel; /* relative cursor */
+	int8_t ignore_warp;
+
 	XShmSegmentInfo shm;
 	int8_t          shmat;
 	XImage*         image; /* TODO: XImage path */

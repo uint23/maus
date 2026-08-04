@@ -208,6 +208,9 @@ static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 	Atom utf8_string;
 	Atom clipboard;
 
+	int cx;
+	int cy;
+
 	switch (xev->type) {
 		case Expose:
 			if (xev->xexpose.count != 0)
@@ -288,6 +291,30 @@ static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 			return 1;
 
 		case MotionNotify:
+			if (be->cur_rel) {
+				cx = mw->width / 2;
+				cy = mw->height / 2;
+
+				if (be->ignore_warp && xev->xmotion.x == cx && xev->xmotion.y == cy) {
+					be->ignore_warp = 0;
+					return 0;
+				}
+
+				ev->type = MAUS_EV_MOUSE_MOTION;
+				ev->mouse.motion.x = xev->xmotion.x - cx;
+				ev->mouse.motion.y = xev->xmotion.y - cy;
+
+				if (ev->mouse.motion.x != 0 || ev->mouse.motion.y != 0) {
+					be->ignore_warp = 1;
+					XWarpPointer(
+						be->display, None, be->win,
+						0, 0, 0, 0, cx, cy
+					);
+					XFlush(be->display);
+				}
+
+				return ev->mouse.motion.x != 0 || ev->mouse.motion.y != 0;
+			}
 			ev->type = MAUS_EV_MOUSE_MOTION;
 			ev->mouse.motion.x = xev->xmotion.x;
 			ev->mouse.motion.y = xev->xmotion.y;
@@ -560,6 +587,9 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	be->display = d;
 	be->root = DefaultRootWindow(d);
 	be->win = None;
+	be->cur_rel = 0;
+	be->ignore_warp = 0;
+
 	mw->frame_time_last = maus_get_time_ns();
 	mw->title = title;
 	mw->width = width;
@@ -729,6 +759,35 @@ void maus_cur_set_mode(Maus* mw, MausCursorState state)
 
 	/* unlock cursor */
 	if (state == MAUS_CURSOR_STATE_FREE) {
+		XUngrabPointer(dpy, CurrentTime);
+		XFlush(dpy);
+		return;
+	}
+
+	/* relative cursor */
+	if (state == MAUS_CURSOR_STATE_RELATIVE) {
+		mask = ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
+		grab = XGrabPointer(
+			dpy, win, True, mask, GrabModeAsync,
+			GrabModeAsync, win, None, CurrentTime
+		);
+
+		if (grab != GrabSuccess) {
+			maus_log(stderr, "failed to grab mouse pointer");
+			return;
+		}
+
+		be->cur_rel = 1;
+		be->ignore_warp = 1;
+		XWarpPointer(dpy, None, win, 0, 0, 0, 0, mw->width/2, mw->height/2);
+		XFlush(dpy);
+		return;
+	}
+
+	/* absolute cursor */
+	if (state == MAUS_CURSOR_STATE_ABSOLUTE) {
+		be->cur_rel = 0;
+		be->ignore_warp = 0;
 		XUngrabPointer(dpy, CurrentTime);
 		XFlush(dpy);
 		return;

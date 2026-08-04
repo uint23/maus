@@ -8,6 +8,7 @@
 int mx, my;
 bool cur_visible = true;
 bool cur_locked = false;
+bool cur_relative = false;
 bool mb1_pressed = false;
 char txtbuf[4096] = {'\0'};
 int current_char = 0;
@@ -44,6 +45,13 @@ void handle_ev(Maus* mw, MausEvent* ev)
 				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_LOCKED);
 
 				cur_locked = !cur_locked;
+			}
+			if (keys[MAUS_KEY_CONTROL_L] && keys[MAUS_KEY_R]) {
+				cur_relative ?
+				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_RELATIVE) :
+				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_ABSOLUTE);
+
+				cur_relative = !cur_relative;
 			}
 
 			if (ev->key.pressed == false)
@@ -145,4 +153,3 @@ int main(void)
 	maus_font_free(font);
 	maus_close(mw);
 }
-
