@@ -24,6 +24,8 @@ struct xdg_toplevel;
 
 struct zwp_pointer_constraints_v1;
 struct zwp_confined_pointer_v1;
+struct zwp_relative_pointer_manager_v1;
+struct zwp_relative_pointer_v1;
 
 struct xkb_context;
 struct xkb_keymap;
@@ -36,8 +38,8 @@ typedef struct {
 	uint32_t width;
 	uint32_t height;
 
-	uint32_t mouse_x;
-	uint32_t mouse_y;
+	int32_t  mouse_x;
+	int32_t  mouse_y;
 	uint32_t mouse_button;
 	uint8_t  mouse_pressed;
 
@@ -72,8 +74,10 @@ typedef struct {
 	uint32_t                pointer_enter_serial;
 	int8_t                  cursor_state;
 
-	struct zwp_pointer_constraints_v1* pointer_constraints;
-	struct zwp_confined_pointer_v1*    locked_pointer;
+	struct zwp_pointer_constraints_v1*      pointer_constraints;
+	struct zwp_confined_pointer_v1*         locked_pointer;
+	struct zwp_relative_pointer_manager_v1* relative_pointer_manager;
+	struct zwp_relative_pointer_v1*         relative_pointer;
 
 	struct xkb_context* xkb_context;
 	struct xkb_keymap*  xkb_keymap;
@@ -91,4 +95,3 @@ typedef struct {
 } MausBackend;
 
 #endif /* MAUS_WAYLAND_H */
-

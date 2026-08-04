@@ -48,8 +48,8 @@ void handle_ev(Maus* mw, MausEvent* ev)
 			}
 			if (keys[MAUS_KEY_CONTROL_L] && keys[MAUS_KEY_R]) {
 				cur_relative ?
-				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_RELATIVE) :
-				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_ABSOLUTE);
+				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_ABSOLUTE) :
+				maus_cur_set_mode(mw, MAUS_CURSOR_STATE_RELATIVE);
 
 				cur_relative = !cur_relative;
 			}

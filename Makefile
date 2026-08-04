@@ -41,7 +41,7 @@ build/maus_x11.o: source/maus_x11.c include/maus.h include/maus_x11.h config.mk
 	${CC} ${CFLAGS} ${CPPFLAGS} -c source/maus_x11.c -o $@
 
 # Wayland
-build/maus_wayland.o: source/maus_wayland.c include/maus.h include/maus_wayland.h build/xdg-shell-client-protocol.h build/pointer-constraints-unstable-v1-client-protocol.h config.mk
+build/maus_wayland.o: source/maus_wayland.c include/maus.h include/maus_wayland.h build/xdg-shell-client-protocol.h build/pointer-constraints-unstable-v1-client-protocol.h build/relative-pointer-unstable-v1-client-protocol.h config.mk
 	mkdir -p build
 	${CC} ${WL_CFLAGS} ${CPPFLAGS} -c source/maus_wayland.c -o $@
 build/xdg-shell-client-protocol.h:
@@ -62,6 +62,15 @@ build/pointer-constraints-unstable-v1-protocol.c:
 build/pointer-constraints-unstable-v1-protocol.o: build/pointer-constraints-unstable-v1-protocol.c build/pointer-constraints-unstable-v1-client-protocol.h
 	mkdir -p build
 	${CC} ${WL_CFLAGS} ${CPPFLAGS} -c build/pointer-constraints-unstable-v1-protocol.c -o $@
+build/relative-pointer-unstable-v1-client-protocol.h:
+	mkdir -p build
+	wayland-scanner client-header ${PROTOS}/unstable/relative-pointer/relative-pointer-unstable-v1.xml $@
+build/relative-pointer-unstable-v1-protocol.c:
+	mkdir -p build
+	wayland-scanner private-code ${PROTOS}/unstable/relative-pointer/relative-pointer-unstable-v1.xml $@
+build/relative-pointer-unstable-v1-protocol.o: build/relative-pointer-unstable-v1-protocol.c build/relative-pointer-unstable-v1-client-protocol.h
+	mkdir -p build
+	${CC} ${WL_CFLAGS} ${CPPFLAGS} -c build/relative-pointer-unstable-v1-protocol.c -o $@
 
 clean:
 	rm -rf build ${LIB_NAME} config.mk compile_flags.txt

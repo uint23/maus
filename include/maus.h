@@ -91,6 +91,8 @@ typedef struct {
 		struct {
 			int32_t x;
 			int32_t y;
+			int32_t dx;
+			int32_t dy;
 		} motion;
 	} mouse;
 

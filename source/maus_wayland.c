@@ -11,6 +11,7 @@
 #include <wayland-cursor.h>
 #include <xdg-shell-client-protocol.h>
 #include <pointer-constraints-unstable-v1-client-protocol.h>
+#include <relative-pointer-unstable-v1-client-protocol.h>
 #include <xkbcommon/xkbcommon.h>
 
 #include "maus.h"
@@ -36,6 +37,7 @@ static void pointer_axis_stop(void* data, struct wl_pointer* pointer, uint32_t t
 static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, uint32_t axis, int32_t discrete);
 static void pointer_axis_value120(void* data, struct wl_pointer* pointer, uint32_t axis, int32_t value120);
 static void pointer_axis_relative_direction(void* data, struct wl_pointer* pointer, uint32_t axis, uint32_t direction);
+static void relative_pointer_motion(void* data, struct zwp_relative_pointer_v1* relative_pointer, uint32_t utime_hi, uint32_t utime_lo, wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dx_unaccel, wl_fixed_t dy_unaccel);
 static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t format, int32_t fd, uint32_t size);
 static void keyboard_enter(void* data, struct wl_keyboard* keyboard, uint32_t serial, struct wl_surface* surface, struct wl_array* keys);
 static void keyboard_leave(void* data, struct wl_keyboard* keyboard, uint32_t serial, struct wl_surface* surface);
@@ -44,12 +46,14 @@ static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_
 static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard, int32_t rate, int32_t delay);
 static void registry_global(void* data, struct wl_registry* registry, uint32_t name, const char* interface, uint32_t version);
 
-static void cursor_destroy(Maus* mw);
-static void cursor_hide(Maus* mw);
 static int8_t cursor_init(Maus* mw);
+static void cursor_destroy(Maus* mw);
 static void cursor_lock(Maus* mw);
 static void cursor_unlock(Maus* mw);
 static void cursor_show(Maus* mw);
+static void cursor_hide(Maus* mw);
+static void cursor_relative(Maus* mw);
+static void cursor_absolute(Maus* mw);
 static MausKey keysym_to_mauskey(xkb_keysym_t sym);
 static MausMouseButton wl_button_to_maus(uint32_t button);
 static void wl_buffer_release(void* data, struct wl_buffer* buffer);
@@ -70,6 +74,9 @@ static struct wl_pointer_listener pointer_listener = {
 static struct wl_keyboard_listener keyboard_listener = {
 	keyboard_keymap, keyboard_enter, keyboard_leave, keyboard_key,
 	keyboard_modifiers, keyboard_repeat_info
+};
+static struct zwp_relative_pointer_v1_listener relative_pointer_listener = {
+	relative_pointer_motion
 };
 static struct wl_buffer_listener wl_buffer_listener = { wl_buffer_release };
 
@@ -172,9 +179,9 @@ static void registry_global(void* data, struct wl_registry* registry,
 		wl_seat_add_listener(be->seat, &seat_listener, mw);
 	}
 	else if (strcmp(interface, zwp_pointer_constraints_v1_interface.name) == 0)
-		be->pointer_constraints = wl_registry_bind(
-			registry, name, &zwp_pointer_constraints_v1_interface, 1
-		);
+		be->pointer_constraints = wl_registry_bind(registry, name, &zwp_pointer_constraints_v1_interface, 1);
+	else if (strcmp(interface, zwp_relative_pointer_manager_v1_interface.name) == 0)
+		be->relative_pointer_manager = wl_registry_bind(registry, name, &zwp_relative_pointer_manager_v1_interface, 1);
 }
 
 static void seat_capabilities(void* data, struct wl_seat* seat, uint32_t capabilities)
@@ -187,6 +194,7 @@ static void seat_capabilities(void* data, struct wl_seat* seat, uint32_t capabil
 		wl_pointer_add_listener(be->pointer, &pointer_listener, mw);
 	}
 	else if (!(capabilities & WL_SEAT_CAPABILITY_POINTER) && be->pointer) {
+		cursor_absolute(mw);
 		wl_pointer_destroy(be->pointer);
 		be->pointer = NULL;
 	}
@@ -241,6 +249,9 @@ static void pointer_motion(void* data, struct wl_pointer* pointer, uint32_t time
 
 	(void)pointer;
 	(void)time;
+
+	if (mw->backend.relative_pointer)
+		return;
 
 	mw->backend.pending.pending = 1;
 	mw->backend.pending.type = MAUS_EV_MOUSE_MOTION;
@@ -332,6 +343,25 @@ static void pointer_axis_relative_direction(void* data, struct wl_pointer* point
 	(void)pointer;
 	(void)axis;
 	(void)direction;
+}
+
+static void relative_pointer_motion(void* data, struct zwp_relative_pointer_v1* relative_pointer,
+                                    uint32_t utime_hi, uint32_t utime_lo,
+                                    wl_fixed_t dx, wl_fixed_t dy,
+                                    wl_fixed_t dx_unaccel, wl_fixed_t dy_unaccel)
+{
+	Maus* mw = data;
+
+	(void)relative_pointer;
+	(void)utime_hi;
+	(void)utime_lo;
+	(void)dx_unaccel;
+	(void)dy_unaccel;
+
+	mw->backend.pending.pending = 1;
+	mw->backend.pending.type = MAUS_EV_MOUSE_MOTION;
+	mw->backend.pending.mouse_x = wl_fixed_to_int(dx);
+	mw->backend.pending.mouse_y = wl_fixed_to_int(dy);
 }
 
 static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t format,
@@ -556,6 +586,35 @@ static void cursor_show(Maus* mw)
 	wl_surface_attach(be->cursor_surface, buffer, 0, 0);
 	wl_surface_damage_buffer(be->cursor_surface, 0, 0, image->width, image->height);
 	wl_surface_commit(be->cursor_surface);
+}
+
+static void cursor_relative(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+	if (be->relative_pointer)
+		return;
+	if (!be->relative_pointer_manager || !be->pointer)
+		return;
+
+	cursor_lock(mw);
+	be->relative_pointer = zwp_relative_pointer_manager_v1_get_relative_pointer(
+		be->relative_pointer_manager, be->pointer
+	);
+	zwp_relative_pointer_v1_add_listener(
+		be->relative_pointer, &relative_pointer_listener, mw
+	);
+}
+
+static void cursor_absolute(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	if (be->relative_pointer) {
+		zwp_relative_pointer_v1_destroy(be->relative_pointer);
+		be->relative_pointer = NULL;
+	}
+
+	cursor_unlock(mw);
 }
 
 static int8_t fb_create(Maus* mw);
@@ -810,6 +869,7 @@ void maus_close(Maus* mw)
 	be = &mw->backend;
 
 	fb_destroy(mw);
+	cursor_absolute(mw);
 
 	if (be->xdg_toplevel)
 		xdg_toplevel_destroy(be->xdg_toplevel);
@@ -819,8 +879,6 @@ void maus_close(Maus* mw)
 
 	if (be->surface)
 		wl_surface_destroy(be->surface);
-
-	cursor_unlock(mw);
 
 	if (be->keyboard)
 		wl_keyboard_destroy(be->keyboard);
@@ -833,6 +891,9 @@ void maus_close(Maus* mw)
 
 	if (be->pointer_constraints)
 		zwp_pointer_constraints_v1_destroy(be->pointer_constraints);
+
+	if (be->relative_pointer_manager)
+		zwp_relative_pointer_manager_v1_destroy(be->relative_pointer_manager);
 
 	if (be->xkb_state)
 		xkb_state_unref(be->xkb_state);
@@ -1106,7 +1167,15 @@ void maus_cur_set_mode(Maus* mw, MausCursorState state)
 		break;
 	case MAUS_CURSOR_STATE_FREE:
 		cursor_unlock(mw);
-		mw->backend.cursor_state = MAUS_CURSOR_STATE_VISIBLE;
+		mw->backend.cursor_state = state;
+		break;
+	case MAUS_CURSOR_STATE_RELATIVE:
+		cursor_relative(mw);
+		mw->backend.cursor_state = state;
+		break;
+	case MAUS_CURSOR_STATE_ABSOLUTE:
+		cursor_absolute(mw);
+		mw->backend.cursor_state = state;
 		break;
 	default:
 		break;
