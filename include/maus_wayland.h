@@ -20,6 +20,10 @@ struct xdg_wm_base;
 struct xdg_surface;
 struct xdg_toplevel;
 
+struct xkb_context;
+struct xkb_keymap;
+struct xkb_state;
+
 typedef struct {
 	int8_t  pending;
 	int32_t type;
@@ -33,6 +37,8 @@ typedef struct {
 	uint8_t  mouse_pressed;
 
 	uint32_t key_code;
+	uint32_t key_sym;
+	char     key_text;
 	uint8_t  key_pressed;
 } MausEventPending;
 
@@ -49,6 +55,11 @@ typedef struct {
 	struct wl_seat*     seat;
 	struct wl_pointer*  pointer;
 	struct wl_keyboard* keyboard;
+
+	struct xkb_context* xkb_context;
+	struct xkb_keymap*  xkb_keymap;
+	struct xkb_state*   xkb_state;
+
 
 	MausEventPending pending;
 

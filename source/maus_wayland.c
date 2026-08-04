@@ -7,6 +7,7 @@
 
 #include <wayland-client.h>
 #include <xdg-shell-client-protocol.h>
+#include <xkbcommon/xkbcommon.h>
 
 #include "maus.h"
 #include "maus_wayland.h"
@@ -59,6 +60,8 @@ static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
 static void registry_global(void* data, struct wl_registry* registry,
                             uint32_t name, const char* interface,
                             uint32_t version);
+static MausKey keysym_to_mauskey(xkb_keysym_t sym);
+static MausMouseButton wl_button_to_maus(uint32_t button);
 static struct wl_registry_listener registry_listener = { registry_global, registry_global_remove };
 static struct xdg_surface_listener xdg_surface_listener = { xdg_surface_configure };
 static struct xdg_toplevel_listener xdg_toplevel_listener = {
@@ -252,7 +255,44 @@ static void pointer_axis_relative_direction(void* data, struct wl_pointer* point
                                             uint32_t axis, uint32_t direction) { }
 
 static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t format,
-                            int32_t fd, uint32_t size) { }
+                            int32_t fd, uint32_t size)
+{
+	Maus* mw = data;
+	MausBackend* be = &mw->backend;
+	char* map;
+
+	(void)keyboard;
+
+	if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
+		close(fd);
+		return;
+	}
+
+	map = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (map == MAP_FAILED) {
+		close(fd);
+		return;
+	}
+
+	if (be->xkb_state)
+		xkb_state_unref(be->xkb_state);
+	if (be->xkb_keymap)
+		xkb_keymap_unref(be->xkb_keymap);
+
+	be->xkb_keymap = xkb_keymap_new_from_string(
+		be->xkb_context, map,
+		XKB_KEYMAP_FORMAT_TEXT_V1,
+		XKB_KEYMAP_COMPILE_NO_FLAGS
+	);
+
+	munmap(map, size);
+	close(fd);
+
+	if (!be->xkb_keymap)
+		return;
+
+	be->xkb_state = xkb_state_new(be->xkb_keymap);
+}
 
 static void keyboard_enter(void* data, struct wl_keyboard* keyboard, uint32_t serial,
                            struct wl_surface* surface, struct wl_array* keys) { }
@@ -264,25 +304,60 @@ static void keyboard_key(void* data, struct wl_keyboard* keyboard, uint32_t seri
                          uint32_t time, uint32_t key, uint32_t state)
 {
 	Maus* mw = data;
+	MausBackend* be = &mw->backend;
 	uint32_t code;
+	xkb_keysym_t sym;
+	char text[8];
+	int len;
 
 	(void)keyboard;
 	(void)serial;
 	(void)time;
 
 	code = key + 8;
-	mw->backend.pending.pending = 1;
-	mw->backend.pending.type = MAUS_EV_KEY;
-	mw->backend.pending.key_code = code;
-	mw->backend.pending.key_pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
+	sym = XKB_KEY_NoSymbol;
+	text[0] = 0;
+
+	if (be->xkb_state) {
+		sym = xkb_state_key_get_one_sym(be->xkb_state, code);
+		if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+			len = xkb_state_key_get_utf8(be->xkb_state, code, text, sizeof(text));
+			if (len <= 0)
+				text[0] = 0;
+		}
+	}
+
+	be->pending.pending = 1;
+	be->pending.type = MAUS_EV_KEY;
+	be->pending.key_code = code;
+	be->pending.key_sym = keysym_to_mauskey(sym);
+	be->pending.key_text = text[0];
+	be->pending.key_pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
 
 	if (code < MAUS_KEYCODE_LAST)
-		mw->key_codes[code] = mw->backend.pending.key_pressed;
+		mw->key_codes[code] = be->pending.key_pressed;
+	if (be->pending.key_sym != MAUS_KEY_NONE)
+		mw->key_syms[be->pending.key_sym] = be->pending.key_pressed;
 }
 
 static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_t serial,
                                uint32_t mods_depressed, uint32_t mods_latched,
-                               uint32_t mods_locked, uint32_t group) { }
+                               uint32_t mods_locked, uint32_t group)
+{
+	Maus* mw = data;
+
+	(void)keyboard;
+	(void)serial;
+
+	if (!mw->backend.xkb_state)
+		return;
+
+	xkb_state_update_mask(
+		mw->backend.xkb_state, mods_depressed,
+		mods_latched, mods_locked,
+		0, 0, group
+	);
+}
 
 static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
                                  int32_t rate, int32_t delay) { }
@@ -291,7 +366,6 @@ static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
 static int8_t fb_create(Maus* mw);
 static int8_t fb_create_shm(size_t size);
 static int8_t handle_event(Maus* mw, MausEvent* ev);
-static MausMouseButton wl_button_to_maus(uint32_t button);
 
 static int8_t fb_create(Maus* mw)
 {
@@ -389,8 +463,8 @@ static int8_t handle_event(Maus* mw, MausEvent* ev)
 	case MAUS_EV_KEY:
 		ev->key.code = be->pending.key_code;
 		ev->key.pressed = be->pending.key_pressed;
-		ev->key.key = MAUS_KEY_NONE;
-		ev->key.text = 0;
+		ev->key.key = be->pending.key_sym;
+		ev->key.text = be->pending.key_text;
 		return 1;
 
 	default:
@@ -405,6 +479,56 @@ static MausMouseButton wl_button_to_maus(uint32_t button)
 		case 0x111: return MAUS_MOUSE_BUTTON_RIGHT;
 		case 0x112: return MAUS_MOUSE_BUTTON_MIDDLE;
 		default:    return MAUS_MOUSE_BUTTON_NONE;
+	}
+}
+
+static MausKey keysym_to_mauskey(xkb_keysym_t sym)
+{
+	if (sym >= 0x20 && sym <= 0x7E)
+		return (MausKey)sym;
+
+	if (sym >= XKB_KEY_F1 && sym <= XKB_KEY_F12)
+		return MAUS_KEY_F1 + (sym - XKB_KEY_F1);
+	if (sym >= XKB_KEY_KP_0 && sym <= XKB_KEY_KP_9)
+		return MAUS_KEY_KP_0 + (sym - XKB_KEY_KP_0);
+
+	switch (sym) {
+		case XKB_KEY_BackSpace:    return MAUS_KEY_BACKSPACE;
+		case XKB_KEY_Tab:          return MAUS_KEY_TAB;
+		case XKB_KEY_Return:       return MAUS_KEY_ENTER;
+		case XKB_KEY_Escape:       return MAUS_KEY_ESCAPE;
+		case XKB_KEY_Delete:       return MAUS_KEY_DELETE;
+		case XKB_KEY_Left:         return MAUS_KEY_LEFT;
+		case XKB_KEY_Right:        return MAUS_KEY_RIGHT;
+		case XKB_KEY_Up:           return MAUS_KEY_UP;
+		case XKB_KEY_Down:         return MAUS_KEY_DOWN;
+		case XKB_KEY_Home:         return MAUS_KEY_HOME;
+		case XKB_KEY_End:          return MAUS_KEY_END;
+		case XKB_KEY_Page_Up:      return MAUS_KEY_PAGE_UP;
+		case XKB_KEY_Page_Down:    return MAUS_KEY_PAGE_DOWN;
+		case XKB_KEY_Insert:       return MAUS_KEY_INSERT;
+		case XKB_KEY_Shift_L:      return MAUS_KEY_SHIFT_L;
+		case XKB_KEY_Shift_R:      return MAUS_KEY_SHIFT_R;
+		case XKB_KEY_Control_L:    return MAUS_KEY_CONTROL_L;
+		case XKB_KEY_Control_R:    return MAUS_KEY_CONTROL_R;
+		case XKB_KEY_Alt_L:        return MAUS_KEY_ALT_L;
+		case XKB_KEY_Alt_R:        return MAUS_KEY_ALT_R;
+		case XKB_KEY_Super_L:      return MAUS_KEY_SUPER_L;
+		case XKB_KEY_Super_R:      return MAUS_KEY_SUPER_R;
+		case XKB_KEY_Caps_Lock:    return MAUS_KEY_CAPS_LOCK;
+		case XKB_KEY_Num_Lock:     return MAUS_KEY_NUM_LOCK;
+		case XKB_KEY_Scroll_Lock:  return MAUS_KEY_SCROLL_LOCK;
+		case XKB_KEY_Print:        return MAUS_KEY_PRINT_SCREEN;
+		case XKB_KEY_Pause:        return MAUS_KEY_PAUSE;
+		case XKB_KEY_Menu:         return MAUS_KEY_MENU;
+		case XKB_KEY_KP_Decimal:   return MAUS_KEY_KP_DECIMAL;
+		case XKB_KEY_KP_Divide:    return MAUS_KEY_KP_DIVIDE;
+		case XKB_KEY_KP_Multiply:  return MAUS_KEY_KP_MULTIPLY;
+		case XKB_KEY_KP_Subtract:  return MAUS_KEY_KP_SUBTRACT;
+		case XKB_KEY_KP_Add:       return MAUS_KEY_KP_ADD;
+		case XKB_KEY_KP_Enter:     return MAUS_KEY_KP_ENTER;
+		case XKB_KEY_KP_Equal:     return MAUS_KEY_KP_EQUAL;
+		default:                   return MAUS_KEY_NONE;
 	}
 }
 
@@ -461,6 +585,15 @@ void maus_close(Maus* mw)
 
 	if (be->seat)
 		wl_seat_destroy(be->seat);
+
+	if (be->xkb_state)
+		xkb_state_unref(be->xkb_state);
+
+	if (be->xkb_keymap)
+		xkb_keymap_unref(be->xkb_keymap);
+
+	if (be->xkb_context)
+		xkb_context_unref(be->xkb_context);
 
 	if (be->wm_base)
 		xdg_wm_base_destroy(be->wm_base);
@@ -562,6 +695,13 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	wl_registry_add_listener(be->registry, &registry_listener, mw);
 	wl_display_roundtrip(be->display);
 
+	be->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	if (!be->xkb_context) {
+		maus_close(mw);
+		free(mw);
+		return NULL;
+	}
+
 	if (!be->compositor || !be->shm || !be->wm_base) {
 		maus_close(mw);
 		free(mw);
@@ -610,7 +750,7 @@ int8_t maus_event_poll(Maus* mw, MausEvent* ev)
 	pfd.fd = wl_display_get_fd(be->display);
 	pfd.events = POLLIN;
 	pfd.revents = 0;
-
+	
 	if (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN)) {
 		if (wl_display_read_events(be->display) == -1) {
 			ev->type = MAUS_EV_CLOSE;
