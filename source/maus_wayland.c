@@ -246,17 +246,28 @@ static void pointer_motion(void* data, struct wl_pointer* pointer, uint32_t time
                            wl_fixed_t sx, wl_fixed_t sy)
 {
 	Maus* mw = data;
+	MausBackend* be = &mw->backend;
+	int32_t x;
+	int32_t y;
 
 	(void)pointer;
 	(void)time;
 
-	if (mw->backend.relative_pointer)
+	if (be->relative_pointer)
 		return;
 
-	mw->backend.pending.pending = 1;
-	mw->backend.pending.type = MAUS_EV_MOUSE_MOTION;
-	mw->backend.pending.mouse_x = wl_fixed_to_int(sx);
-	mw->backend.pending.mouse_y = wl_fixed_to_int(sy);
+	x = wl_fixed_to_int(sx);
+	y = wl_fixed_to_int(sy);
+
+	be->pending.pending = 1;
+	be->pending.type = MAUS_EV_MOUSE_MOTION;
+	be->pending.mouse_x = x;
+	be->pending.mouse_y = y;
+	be->pending.mouse_dx = be->mouse_pos_set ? x - be->mouse_x : 0;
+	be->pending.mouse_dy = be->mouse_pos_set ? y - be->mouse_y : 0;
+	be->mouse_x = x;
+	be->mouse_y = y;
+	be->mouse_pos_set = 1;
 }
 
 static void pointer_button(void* data, struct wl_pointer* pointer, uint32_t serial,
@@ -362,6 +373,8 @@ static void relative_pointer_motion(void* data, struct zwp_relative_pointer_v1* 
 	mw->backend.pending.type = MAUS_EV_MOUSE_MOTION;
 	mw->backend.pending.mouse_x = wl_fixed_to_int(dx);
 	mw->backend.pending.mouse_y = wl_fixed_to_int(dy);
+	mw->backend.pending.mouse_dx = wl_fixed_to_int(dx);
+	mw->backend.pending.mouse_dy = wl_fixed_to_int(dy);
 }
 
 static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, uint32_t format,
@@ -755,6 +768,8 @@ static int8_t handle_event(Maus* mw, MausEvent* ev)
 	case MAUS_EV_MOUSE_MOTION:
 		ev->mouse.motion.x = be->pending.mouse_x;
 		ev->mouse.motion.y = be->pending.mouse_y;
+		ev->mouse.motion.dx = be->pending.mouse_dx;
+		ev->mouse.motion.dy = be->pending.mouse_dy;
 		return 1;
 
 	case MAUS_EV_MOUSE_BUTTON:

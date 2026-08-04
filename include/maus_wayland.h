@@ -40,6 +40,8 @@ typedef struct {
 
 	int32_t  mouse_x;
 	int32_t  mouse_y;
+	int32_t  mouse_dx;
+	int32_t  mouse_dy;
 	uint32_t mouse_button;
 	uint8_t  mouse_pressed;
 
@@ -72,6 +74,9 @@ typedef struct {
 	struct wl_cursor*       cursor;
 	struct wl_surface*      cursor_surface;
 	uint32_t                pointer_enter_serial;
+	int32_t                 mouse_x;
+	int32_t                 mouse_y;
+	int8_t                  mouse_pos_set;
 	int8_t                  cursor_state;
 
 	struct zwp_pointer_constraints_v1*      pointer_constraints;
@@ -95,3 +100,4 @@ typedef struct {
 } MausBackend;
 
 #endif /* MAUS_WAYLAND_H */
+
