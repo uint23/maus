@@ -52,6 +52,7 @@ static void cursor_unlock(Maus* mw);
 static void cursor_show(Maus* mw);
 static MausKey keysym_to_mauskey(xkb_keysym_t sym);
 static MausMouseButton wl_button_to_maus(uint32_t button);
+static void wl_buffer_release(void* data, struct wl_buffer* buffer);
 
 static struct wl_registry_listener registry_listener = { registry_global, registry_global_remove };
 static struct xdg_surface_listener xdg_surface_listener = { xdg_surface_configure };
@@ -70,6 +71,16 @@ static struct wl_keyboard_listener keyboard_listener = {
 	keyboard_keymap, keyboard_enter, keyboard_leave, keyboard_key,
 	keyboard_modifiers, keyboard_repeat_info
 };
+static struct wl_buffer_listener wl_buffer_listener = { wl_buffer_release };
+
+static void wl_buffer_release(void* data, struct wl_buffer* buffer)
+{
+	MausWLBuffer* wb = data;
+
+	(void)buffer;
+
+	wb->busy = 0;
+}
 
 static void registry_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name)
 {
@@ -516,7 +527,7 @@ static void cursor_unlock(Maus* mw)
 	MausBackend* be = &mw->backend;
 
 	if (be->locked_pointer) {
-		zwp_pointer_constraints_v1_lock_pointer(be->locked_pointer);
+		zwp_confined_pointer_v1_destroy(be->locked_pointer);
 		be->locked_pointer = NULL;
 	}
 
@@ -548,11 +559,30 @@ static void cursor_show(Maus* mw)
 }
 
 static int8_t fb_create(Maus* mw);
+static int8_t fb_create_buffer(Maus* mw, MausWLBuffer* wb);
 static int8_t fb_create_shm(size_t size);
 static void fb_destroy(Maus* mw);
 static int8_t handle_event(Maus* mw, MausEvent* ev);
 
 static int8_t fb_create(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	if (!fb_create_buffer(mw, &be->buffers[0])) {
+		fb_destroy(mw);
+		return 0;
+	}
+	if (!fb_create_buffer(mw, &be->buffers[1])) {
+		fb_destroy(mw);
+		return 0;
+	}
+
+	mw->fb = be->buffers[0].data;
+	mw->stride = mw->width;
+	return 1;
+}
+
+static int8_t fb_create_buffer(Maus* mw, MausWLBuffer* wb)
 {
 	MausBackend* be = &mw->backend;
 	struct wl_shm_pool* pool;
@@ -568,14 +598,15 @@ static int8_t fb_create(Maus* mw)
 	if (fd < 0)
 		return 0;
 
-	be->shm_data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	if (be->shm_data == MAP_FAILED) {
+	wb->data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	if (wb->data == MAP_FAILED) {
+		wb->data = NULL;
 		close(fd);
 		return 0;
 	}
 
 	pool = wl_shm_create_pool(be->shm, fd, size);
-	be->buffer = wl_shm_pool_create_buffer(
+	wb->buffer = wl_shm_pool_create_buffer(
 		pool, 0, mw->width, mw->height,
 		stride, WL_SHM_FORMAT_XRGB8888
 	);
@@ -583,9 +614,15 @@ static int8_t fb_create(Maus* mw)
 	wl_shm_pool_destroy(pool);
 	close(fd);
 
-	be->shm_size = size;
-	mw->fb = be->shm_data;
-	mw->stride = mw->width;
+	if (!wb->buffer) {
+		munmap(wb->data, size);
+		wb->data = NULL;
+		return 0;
+	}
+
+	wl_buffer_add_listener(wb->buffer, &wl_buffer_listener, wb);
+	wb->size = size;
+	wb->busy = 0;
 
 	return 1;
 }
@@ -620,15 +657,20 @@ static void fb_destroy(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
-	if (be->buffer)
-		wl_buffer_destroy(be->buffer);
+	uint32_t i;
 
-	if (be->shm_data && be->shm_size > 0)
-		munmap(be->shm_data, be->shm_size);
+	for (i = 0; i < 2; i++) {
+		if (be->buffers[i].buffer)
+			wl_buffer_destroy(be->buffers[i].buffer);
 
-	be->buffer = NULL;
-	be->shm_data = NULL;
-	be->shm_size = 0;
+		if (be->buffers[i].data && be->buffers[i].size > 0)
+			munmap(be->buffers[i].data, be->buffers[i].size);
+
+		be->buffers[i].buffer = NULL;
+		be->buffers[i].data = NULL;
+		be->buffers[i].size = 0;
+		be->buffers[i].busy = 0;
+	}
 	mw->fb = NULL;
 }
 
@@ -767,11 +809,7 @@ void maus_close(Maus* mw)
 
 	be = &mw->backend;
 
-	if (be->buffer)
-		wl_buffer_destroy(be->buffer);
-
-	if (be->shm_data && be->shm_size > 0)
-		munmap(be->shm_data, be->shm_size);
+	fb_destroy(mw);
 
 	if (be->xdg_toplevel)
 		xdg_toplevel_destroy(be->xdg_toplevel);
@@ -842,9 +880,6 @@ int8_t maus_close_window(Maus* mw)
 	if (be->surface)
 		wl_surface_destroy(be->surface);
 
-	be->buffer = NULL;
-	be->shm_data = NULL;
-	be->shm_size = 0;
 	be->xdg_toplevel = NULL;
 	be->xdg_surface = NULL;
 	be->surface = NULL;
@@ -1000,15 +1035,27 @@ void maus_event_wait(Maus* mw, MausEvent* ev)
 void maus_present(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
+	MausWLBuffer* wb = NULL;
 	size_t bytes;
 
-	if (!be->buffer)
+	uint32_t i;
+
+	for (i = 0; i < 2; i++) {
+		if (be->buffers[i].buffer && !be->buffers[i].busy) {
+			wb = &be->buffers[i];
+			break;
+		}
+	}
+
+	if (!wb)
 		return;
 
 	bytes = mw->stride * mw->height * sizeof(uint32_t);
-	memcpy(be->shm_data, mw->bfb, bytes);
+	memcpy(wb->data, mw->bfb, bytes);
+	mw->fb = wb->data;
+	wb->busy = 1;
 
-	wl_surface_attach(be->surface, be->buffer, 0, 0);
+	wl_surface_attach(be->surface, wb->buffer, 0, 0);
 	wl_surface_damage_buffer(be->surface, 0, 0, mw->width, mw->height);
 	wl_surface_commit(be->surface);
 	wl_display_flush(be->display);

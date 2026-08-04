@@ -48,14 +48,19 @@ typedef struct {
 } MausEventPending;
 
 typedef struct {
+	struct wl_buffer* buffer;
+	void*             data;
+	size_t            size;
+	int8_t            busy;
+} MausWLBuffer;
+
+typedef struct {
 	struct wl_display*    display;
-	struct wl_buffer*     buffer;
 	struct wl_compositor* compositor;
 	struct wl_surface*    surface;
 
 	struct wl_shm* shm;
-	void*          shm_data;
-	size_t         shm_size;
+	MausWLBuffer   buffers[2];
 
 	struct wl_seat*     seat;
 	struct wl_pointer*  pointer;
