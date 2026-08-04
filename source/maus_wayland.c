@@ -87,8 +87,10 @@ static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, u
 	Maus* mw = data;
 	xdg_surface_ack_configure(xdg_surface, serial);
 	mw->backend.configured = 1;
-	mw->backend.pending.pending = 1;
-	mw->backend.pending.type = MAUS_EV_REDRAW;
+	if (!mw->backend.pending.pending) {
+		mw->backend.pending.pending = 1;
+		mw->backend.pending.type = MAUS_EV_REDRAW;
+	}
 }
 
 static void xdg_toplevel_configure(void* data, struct xdg_toplevel* xdg_toplevel,
@@ -365,6 +367,7 @@ static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
 
 static int8_t fb_create(Maus* mw);
 static int8_t fb_create_shm(size_t size);
+static void fb_destroy(Maus* mw);
 static int8_t handle_event(Maus* mw, MausEvent* ev);
 
 static int8_t fb_create(Maus* mw)
@@ -429,6 +432,22 @@ static int8_t fb_create_shm(size_t size)
 	}
 
 	return -1;
+}
+
+static void fb_destroy(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	if (be->buffer)
+		wl_buffer_destroy(be->buffer);
+
+	if (be->shm_data && be->shm_size > 0)
+		munmap(be->shm_data, be->shm_size);
+
+	be->buffer = NULL;
+	be->shm_data = NULL;
+	be->shm_size = 0;
+	mw->fb = NULL;
 }
 
 static int8_t handle_event(Maus* mw, MausEvent* ev)
@@ -620,10 +639,7 @@ int8_t maus_close_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
-	if (be->buffer)
-		wl_buffer_destroy(be->buffer);
-	if (be->shm_data && be->shm_size > 0)
-		munmap(be->shm_data, be->shm_size);
+	fb_destroy(mw);
 
 	if (be->xdg_toplevel)
 		xdg_toplevel_destroy(be->xdg_toplevel);
@@ -804,7 +820,30 @@ void maus_present(Maus* mw)
 
 int8_t maus_resize(Maus* mw, uint32_t width, uint32_t height)
 {
+	uint32_t* bfb;
 
+	if (width == 0 || height == 0)
+		return 0;
+
+	bfb = calloc(width * height, sizeof(uint32_t));
+	if (!bfb)
+		return 0;
+
+	fb_destroy(mw);
+	free(mw->bfb);
+
+	mw->width = width;
+	mw->height = height;
+	mw->stride = width;
+	mw->bfb = bfb;
+
+	if (!fb_create(mw)) {
+		free(mw->bfb);
+		mw->bfb = NULL;
+		return 0;
+	}
+
+	return 1;
 }
 
 void maus_cur_set_mode(Maus* mw, MausCursorState state)
