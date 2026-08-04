@@ -41,34 +41,10 @@ elif backend == 'wayland'
 	backend_override_options = ['c_std=c99']
 	deps += [ dependency('wayland-client'), dependency('wayland-cursor'), dependency('xkbcommon'), ]
 
-	wayland_scanner = find_program('wayland-scanner')
-	wayland_protocols = dependency('wayland-protocols')
-	protos = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir')
-
-	protocols = [
-		[ 'xdg-shell', protos / 'stable' / 'xdg-shell' / 'xdg-shell.xml', ],
-		[ 'pointer-constraints-unstable-v1', protos / 'unstable' / 'pointer-constraints' / 'pointer-constraints-unstable-v1.xml', ],
-		[ 'relative-pointer-unstable-v1', protos / 'unstable' / 'relative-pointer' / 'relative-pointer-unstable-v1.xml', ],
-	]
-
-	foreach protocol : protocols
-		name = protocol[0]
-		xml = protocol[1]
-
-		backend_sources += custom_target(
-			name + '-client-protocol.h',
-			input: xml,
-			output: name + '-client-protocol.h',
-			command: [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
-		)
-
-		backend_sources += custom_target(
-			name + '-protocol.c',
-			input: xml,
-			output: name + '-protocol.c',
-			command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
-		)
-	endforeach
+	wayland = import('wayland')
+	backend_sources += wayland.scan_xml(wayland.find_protocol('xdg-shell'))
+	backend_sources += wayland.scan_xml(wayland.find_protocol('pointer-constraints', state: 'unstable', version: 1))
+	backend_sources += wayland.scan_xml(wayland.find_protocol('relative-pointer', state: 'unstable', version: 1))
 
 	backend_sources += ['source/maus_wayland.c']
 
