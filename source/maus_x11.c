@@ -303,6 +303,8 @@ static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 				ev->type = MAUS_EV_MOUSE_MOTION;
 				ev->mouse.motion.x = xev->xmotion.x - cx;
 				ev->mouse.motion.y = xev->xmotion.y - cy;
+				ev->mouse.motion.dx = ev->mouse.motion.x;
+				ev->mouse.motion.dy = ev->mouse.motion.y;
 
 				if (ev->mouse.motion.x != 0 || ev->mouse.motion.y != 0) {
 					be->ignore_warp = 1;
@@ -318,6 +320,11 @@ static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 			ev->type = MAUS_EV_MOUSE_MOTION;
 			ev->mouse.motion.x = xev->xmotion.x;
 			ev->mouse.motion.y = xev->xmotion.y;
+			ev->mouse.motion.dx = be->mouse_pos_set ? xev->xmotion.x - be->mouse_x : 0;
+			ev->mouse.motion.dy = be->mouse_pos_set ? xev->xmotion.y - be->mouse_y : 0;
+			be->mouse_x = xev->xmotion.x;
+			be->mouse_y = xev->xmotion.y;
+			be->mouse_pos_set = 1;
 			return 1;
 
 		case ConfigureNotify:
@@ -589,6 +596,9 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	be->win = None;
 	be->cur_rel = 0;
 	be->ignore_warp = 0;
+	be->mouse_x = 0;
+	be->mouse_y = 0;
+	be->mouse_pos_set = 0;
 
 	mw->frame_time_last = maus_get_time_ns();
 	mw->title = title;

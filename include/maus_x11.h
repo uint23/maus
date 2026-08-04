@@ -20,6 +20,9 @@ typedef struct {
 
 	int8_t cur_rel; /* relative cursor */
 	int8_t ignore_warp;
+	int32_t mouse_x;
+	int32_t mouse_y;
+	int8_t  mouse_pos_set;
 
 	XShmSegmentInfo shm;
 	int8_t          shmat;
