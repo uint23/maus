@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <wayland-client.h>
+#include <wayland-cursor.h>
 #include <xdg-shell-client-protocol.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -40,6 +41,10 @@ static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_
 static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard, int32_t rate, int32_t delay);
 static void registry_global(void* data, struct wl_registry* registry, uint32_t name, const char* interface, uint32_t version);
 
+static void cursor_destroy(Maus* mw);
+static void cursor_hide(Maus* mw);
+static int8_t cursor_init(Maus* mw);
+static void cursor_show(Maus* mw);
 static MausKey keysym_to_mauskey(xkb_keysym_t sym);
 static MausMouseButton wl_button_to_maus(uint32_t button);
 
@@ -163,7 +168,21 @@ static void seat_capabilities(void* data, struct wl_seat* seat, uint32_t capabil
 static void seat_name(void* data, struct wl_seat* seat, const char* name) { }
 
 static void pointer_enter(void* data, struct wl_pointer* pointer, uint32_t serial,
-                          struct wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy) { }
+                          struct wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy)
+{
+	Maus* mw = data;
+
+	(void)pointer;
+	(void)surface;
+	(void)sx;
+	(void)sy;
+
+	mw->backend.pointer_enter_serial = serial;
+	if (mw->backend.cursor_state == MAUS_CURSOR_STATE_HIDDEN)
+		cursor_hide(mw);
+	else
+		cursor_show(mw);
+}
 
 static void pointer_leave(void* data, struct wl_pointer* pointer, uint32_t serial,
                           struct wl_surface* surface) { }
@@ -347,6 +366,72 @@ static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, uint32_
 static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
                                  int32_t rate, int32_t delay) { }
 
+
+static int8_t cursor_init(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	be->cursor_theme = wl_cursor_theme_load(NULL, 24, be->shm);
+	if (!be->cursor_theme)
+		return 0;
+
+	be->cursor = wl_cursor_theme_get_cursor(be->cursor_theme, "left_ptr");
+	if (!be->cursor)
+		return 0;
+
+	be->cursor_surface = wl_compositor_create_surface(be->compositor);
+	if (!be->cursor_surface)
+		return 0;
+
+	return 1;
+}
+
+static void cursor_destroy(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	if (be->cursor_surface)
+		wl_surface_destroy(be->cursor_surface);
+	if (be->cursor_theme)
+		wl_cursor_theme_destroy(be->cursor_theme);
+
+	be->cursor_surface = NULL;
+	be->cursor_theme = NULL;
+	be->cursor = NULL;
+}
+
+static void cursor_hide(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+
+	if (!be->pointer)
+		return;
+
+	wl_pointer_set_cursor(be->pointer, be->pointer_enter_serial, NULL, 0, 0);
+}
+
+static void cursor_show(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+	struct wl_cursor_image* image;
+	struct wl_buffer* buffer;
+
+	if (!be->pointer || !be->cursor || !be->cursor_surface)
+		return;
+
+	image = be->cursor->images[0];
+	buffer = wl_cursor_image_get_buffer(image);
+	if (!buffer)
+		return;
+
+	wl_pointer_set_cursor(
+		be->pointer, be->pointer_enter_serial,
+		be->cursor_surface, image->hotspot_x, image->hotspot_y
+	);
+	wl_surface_attach(be->cursor_surface, buffer, 0, 0);
+	wl_surface_damage_buffer(be->cursor_surface, 0, 0, image->width, image->height);
+	wl_surface_commit(be->cursor_surface);
+}
 
 static int8_t fb_create(Maus* mw);
 static int8_t fb_create_shm(size_t size);
@@ -597,6 +682,8 @@ void maus_close(Maus* mw)
 	if (be->xkb_context)
 		xkb_context_unref(be->xkb_context);
 
+	cursor_destroy(mw);
+
 	if (be->wm_base)
 		xdg_wm_base_destroy(be->wm_base);
 
@@ -695,17 +782,17 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	wl_display_roundtrip(be->display);
 
 	be->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	if (!be->xkb_context) {
-		maus_close(mw);
-		free(mw);
-		return NULL;
-	}
+	if (!be->xkb_context)
+		goto close;
 
 	if (!be->compositor || !be->shm || !be->wm_base) {
 		maus_close(mw);
 		free(mw);
 		return NULL;
 	}
+
+	if (!cursor_init(mw))
+		goto close;
 
 	mw->frame_time_last = maus_get_time_ns();
 	mw->title = title;
@@ -714,15 +801,17 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	mw->width = width;
 	mw->height = height;
 	mw->stride = width;
+	be->cursor_state = MAUS_CURSOR_STATE_VISIBLE;
 
 	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
-	if (!mw->bfb) {
-		maus_close(mw);
-		free(mw);
-		return NULL;
-	}
+	if (!mw->bfb)
+		goto close;
 
 	return mw;
+close:
+	maus_close(mw);
+	free(mw);
+	return NULL;
 }
 
 int8_t maus_event_poll(Maus* mw, MausEvent* ev)
@@ -831,6 +920,21 @@ int8_t maus_resize(Maus* mw, uint32_t width, uint32_t height)
 
 void maus_cur_set_mode(Maus* mw, MausCursorState state)
 {
-
+	switch (state) {
+	case MAUS_CURSOR_STATE_VISIBLE:
+		cursor_show(mw);
+		mw->backend.cursor_state = state;
+		break;
+	case MAUS_CURSOR_STATE_HIDDEN:
+		cursor_hide(mw);
+		mw->backend.cursor_state = state;
+		break;
+	case MAUS_CURSOR_STATE_LOCKED:
+		/* TODO */
+	case MAUS_CURSOR_STATE_FREE:
+		/* TODO */
+	default:
+		break;
+	}
 }
 

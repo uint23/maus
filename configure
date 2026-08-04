@@ -30,8 +30,8 @@ case "$backend" in
 		echo "CONF_LIB_NAME = libmaus_x11.a" >> config.mk
 		;;
 	wayland)
-		echo "CONF_CPPFLAGS = -DBACKEND_WAY $(pkg-config --cflags wayland-client xkbcommon)" >> config.mk
-		echo "CONF_LDFLAGS = $(pkg-config --libs wayland-client xkbcommon)" >> config.mk
+		echo "CONF_CPPFLAGS = -DBACKEND_WAY $(pkg-config --cflags wayland-client wayland-cursor xkbcommon)" >> config.mk
+		echo "CONF_LDFLAGS = $(pkg-config --libs wayland-client wayland-cursor xkbcommon)" >> config.mk
 		echo "CONF_SRC = source/maus_wayland.c build/xdg-shell-protocol.c" >> config.mk
 		echo "CONF_OBJS = build/maus_wayland.o build/xdg-shell-protocol.o" >> config.mk
 		echo "CONF_LIB_NAME = libmaus_wayland.a" >> config.mk

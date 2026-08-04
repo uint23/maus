@@ -15,6 +15,8 @@ struct wl_shm;
 struct wl_seat;
 struct wl_pointer;
 struct wl_keyboard;
+struct wl_cursor_theme;
+struct wl_cursor;
 
 struct xdg_wm_base;
 struct xdg_surface;
@@ -55,6 +57,12 @@ typedef struct {
 	struct wl_seat*     seat;
 	struct wl_pointer*  pointer;
 	struct wl_keyboard* keyboard;
+
+	struct wl_cursor_theme* cursor_theme;
+	struct wl_cursor*       cursor;
+	struct wl_surface*      cursor_surface;
+	uint32_t                pointer_enter_serial;
+	int8_t                  cursor_state;
 
 	struct xkb_context* xkb_context;
 	struct xkb_keymap*  xkb_keymap;
