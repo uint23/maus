@@ -1,7 +1,8 @@
 option(
-	'window_backend',
-	type: 'combo',
-	choices: ['x11', 'wayland', 'windows'],
-	value: 'x11',
-	description: 'Window system backend'
+    'window_backend',
+    type: 'combo',
+    choices: ['auto', 'x11', 'wayland', 'windows'],
+    value: 'auto',
+    description: 'Window system backend',
 )
+
