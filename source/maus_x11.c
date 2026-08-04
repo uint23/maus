@@ -9,6 +9,7 @@
 #include <X11/keysym.h>
 #include <X11/cursorfont.h>
 #include <X11/extensions/XShm.h>
+#include <X11/extensions/XInput2.h>
 
 #include "maus.h"
 #include "maus_input.h"
@@ -28,6 +29,8 @@ static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw);
 static MausKey keysym_to_mauskey(KeySym sym);
 static MausMouseButton mouse_button_to_maus(int btn);
 static int xerr(Display* dpy, XErrorEvent* ev);
+static int8_t xi2_handle_event(Maus* mw, XGenericEventCookie* cookie, MausEvent* ev);
+static void xi2_init(Maus* mw);
 
 static const KeyMapEntry keymap[] = {
 	{ XK_BackSpace,    MAUS_KEY_BACKSPACE }, { XK_Tab,              MAUS_KEY_TAB },
@@ -210,6 +213,13 @@ static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 
 	int cx;
 	int cy;
+	int8_t handled;
+
+	if (xev->type == GenericEvent && XGetEventData(be->display, &xev->xcookie)) {
+		handled = xi2_handle_event(mw, &xev->xcookie, ev);
+		XFreeEventData(be->display, &xev->xcookie);
+		return handled;
+	}
 
 	switch (xev->type) {
 		case Expose:
@@ -292,6 +302,9 @@ static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 
 		case MotionNotify:
 			if (be->cur_rel) {
+				if (be->xi2)
+					return 0;
+
 				cx = mw->width / 2;
 				cy = mw->height / 2;
 
@@ -410,6 +423,78 @@ static int xerr(Display* dpy, XErrorEvent* ev)
 	(void) ev;
 	xerrored = 1;
 	return 0;
+}
+
+static int8_t xi2_handle_event(Maus* mw, XGenericEventCookie* cookie, MausEvent* ev)
+{
+	MausBackend* be = &mw->backend;
+	XIRawEvent* raw;
+	double* values;
+	double dx;
+	double dy;
+	int valuator;
+	int value;
+
+	if (!be->cur_rel || !be->xi2 || cookie->extension != be->xi2_opcode)
+		return 0;
+	if (cookie->evtype != XI_RawMotion)
+		return 0;
+
+	raw = cookie->data;
+	values = raw->raw_values;
+	dx = 0.0;
+	dy = 0.0;
+	value = 0;
+
+	for (valuator = 0; valuator < raw->valuators.mask_len * 8; valuator++) {
+		if (!XIMaskIsSet(raw->valuators.mask, valuator))
+			continue;
+		if (valuator == 0)
+			dx = values[value];
+		else if (valuator == 1)
+			dy = values[value];
+		value++;
+	}
+
+	ev->type = MAUS_EV_MOUSE_MOTION;
+	ev->mouse.motion.x = (int32_t)dx;
+	ev->mouse.motion.y = (int32_t)dy;
+	ev->mouse.motion.dx = ev->mouse.motion.x;
+	ev->mouse.motion.dy = ev->mouse.motion.y;
+	return ev->mouse.motion.dx != 0 || ev->mouse.motion.dy != 0;
+}
+
+static void xi2_init(Maus* mw)
+{
+	MausBackend* be = &mw->backend;
+	int event;
+	int error;
+	int major;
+	int minor;
+	unsigned char mask[(XI_LASTEVENT + 7) / 8];
+	XIEventMask evmask;
+
+	be->xi2 = 0;
+	be->xi2_opcode = 0;
+
+	if (!XQueryExtension(be->display, "XInputExtension", &be->xi2_opcode, &event, &error))
+		return;
+
+	major = 2;
+	minor = 0;
+	if (XIQueryVersion(be->display, &major, &minor) != Success)
+		return;
+
+	memset(mask, 0, sizeof(mask));
+	XISetMask(mask, XI_RawMotion);
+
+	evmask.deviceid = XIAllMasterDevices;
+	evmask.mask_len = sizeof(mask);
+	evmask.mask = mask;
+	XISelectEvents(be->display, be->root, &evmask, 1);
+	XFlush(be->display);
+
+	be->xi2 = 1;
 }
 
 void maus_clipboard_set_text(Maus* mw, const char* text)
@@ -599,6 +684,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	be->mouse_x = 0;
 	be->mouse_y = 0;
 	be->mouse_pos_set = 0;
+	xi2_init(mw);
 
 	mw->frame_time_last = maus_get_time_ns();
 	mw->title = title;
@@ -788,8 +874,12 @@ void maus_cur_set_mode(Maus* mw, MausCursorState state)
 		}
 
 		be->cur_rel = 1;
-		be->ignore_warp = 1;
-		XWarpPointer(dpy, None, win, 0, 0, 0, 0, mw->width/2, mw->height/2);
+		if (!be->xi2) { /* fallback */
+			be->ignore_warp = 1;
+			XWarpPointer(dpy, None, win, 0, 0, 0, 0, mw->width/2, mw->height/2);
+		}
+		else
+			be->ignore_warp = 0;
 		XFlush(dpy);
 		return;
 	}

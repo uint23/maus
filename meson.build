@@ -31,6 +31,7 @@ if backend == 'x11'
 	deps += [
 		dependency('x11'),
 		dependency('xext'),
+		dependency('xi'),
 	]
 	backend_sources += ['source/maus_x11.c']
 

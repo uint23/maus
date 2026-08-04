@@ -24,7 +24,7 @@ EOF
 case "$backend" in
 	x11)
 		echo "CONF_CPPFLAGS = -DBACKEND_X11" >> config.mk
-		echo "CONF_LDFLAGS = -lX11 -lXext" >> config.mk
+		echo "CONF_LDFLAGS = -lX11 -lXext -lXi" >> config.mk
 		echo "CONF_SRC = source/maus_x11.c" >> config.mk
 		echo "CONF_OBJS = build/maus_x11.o" >> config.mk
 		echo "CONF_LIB_NAME = libmaus_x11.a" >> config.mk
