@@ -26,6 +26,7 @@ struct xdg_toplevel;
 
 struct zwp_pointer_constraints_v1;
 struct zwp_confined_pointer_v1;
+struct zwp_locked_pointer_v1;
 struct zwp_relative_pointer_manager_v1;
 struct zwp_relative_pointer_v1;
 
@@ -79,10 +80,12 @@ typedef struct {
 	int32_t                 mouse_x;
 	int32_t                 mouse_y;
 	int8_t                  mouse_pos_set;
-	int8_t                  cursor_state;
+	int8_t                  cursor_visible;
+	int8_t                  cursor_confined;
 
 	struct zwp_pointer_constraints_v1*      pointer_constraints;
-	struct zwp_confined_pointer_v1*         locked_pointer;
+	struct zwp_confined_pointer_v1*         confined_pointer;
+	struct zwp_locked_pointer_v1*           locked_pointer;
 	struct zwp_relative_pointer_manager_v1* relative_pointer_manager;
 	struct zwp_relative_pointer_v1*         relative_pointer;
 

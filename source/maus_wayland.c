@@ -48,8 +48,8 @@ static void registry_global(void* data, struct wl_registry* registry, uint32_t n
 
 static int8_t cursor_init(Maus* mw);
 static void cursor_destroy(Maus* mw);
-static void cursor_lock(Maus* mw);
-static void cursor_unlock(Maus* mw);
+static void cursor_confine(Maus* mw);
+static void cursor_unconfine(Maus* mw);
 static void cursor_show(Maus* mw);
 static void cursor_hide(Maus* mw);
 static void cursor_relative(Maus* mw);
@@ -280,10 +280,10 @@ static void pointer_enter(void* data, struct wl_pointer* pointer, uint32_t seria
 	(void)sy;
 
 	mw->backend.pointer_enter_serial = serial;
-	if (mw->backend.cursor_state == MAUS_CURSOR_STATE_HIDDEN)
-		cursor_hide(mw);
-	else
+	if (mw->backend.cursor_visible)
 		cursor_show(mw);
+	else
+		cursor_hide(mw);
 }
 
 static void pointer_leave(void* data, struct wl_pointer* pointer, uint32_t serial,
@@ -700,32 +700,31 @@ static void cursor_hide(Maus* mw)
 	wl_pointer_set_cursor(be->pointer, be->pointer_enter_serial, NULL, 0, 0);
 }
 
-static void cursor_lock(Maus* mw)
+static void cursor_confine(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
-	if (be->locked_pointer)
+	be->cursor_confined = 1;
+	if (be->relative_pointer || be->confined_pointer)
 		return;
 	if (!be->pointer_constraints || !be->surface || !be->pointer)
 		return;
 
-	be->locked_pointer = zwp_pointer_constraints_v1_confine_pointer(
+	be->confined_pointer = zwp_pointer_constraints_v1_confine_pointer(
 		be->pointer_constraints, be->surface, be->pointer, NULL,
 		ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT
 	);
 }
 
-static void cursor_unlock(Maus* mw)
+static void cursor_unconfine(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
-	if (be->locked_pointer) {
-		zwp_confined_pointer_v1_destroy(be->locked_pointer);
-		be->locked_pointer = NULL;
+	be->cursor_confined = 0;
+	if (be->confined_pointer) {
+		zwp_confined_pointer_v1_destroy(be->confined_pointer);
+		be->confined_pointer = NULL;
 	}
-
-	if (be->cursor_state == MAUS_CURSOR_STATE_VISIBLE)
-		cursor_show(mw);
 }
 
 static void cursor_show(Maus* mw)
@@ -754,12 +753,22 @@ static void cursor_show(Maus* mw)
 static void cursor_relative(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
+
 	if (be->relative_pointer)
 		return;
-	if (!be->relative_pointer_manager || !be->pointer)
+	if (!be->relative_pointer_manager || !be->pointer_constraints ||
+	    !be->surface || !be->pointer)
 		return;
 
-	cursor_lock(mw);
+	if (be->confined_pointer) {
+		zwp_confined_pointer_v1_destroy(be->confined_pointer);
+		be->confined_pointer = NULL;
+	}
+
+	be->locked_pointer = zwp_pointer_constraints_v1_lock_pointer(
+		be->pointer_constraints, be->surface, be->pointer, NULL,
+		ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT
+	);
 	be->relative_pointer = zwp_relative_pointer_manager_v1_get_relative_pointer(
 		be->relative_pointer_manager, be->pointer
 	);
@@ -776,8 +785,13 @@ static void cursor_absolute(Maus* mw)
 		zwp_relative_pointer_v1_destroy(be->relative_pointer);
 		be->relative_pointer = NULL;
 	}
+	if (be->locked_pointer) {
+		zwp_locked_pointer_v1_destroy(be->locked_pointer);
+		be->locked_pointer = NULL;
+	}
 
-	cursor_unlock(mw);
+	if (be->cursor_confined)
+		cursor_confine(mw);
 }
 
 static int8_t fb_create(Maus* mw);
@@ -1034,6 +1048,7 @@ void maus_close(Maus* mw)
 
 	fb_destroy(mw);
 	cursor_absolute(mw);
+	cursor_unconfine(mw);
 
 	if (be->xdg_toplevel)
 		xdg_toplevel_destroy(be->xdg_toplevel);
@@ -1095,7 +1110,8 @@ int8_t maus_close_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
-	cursor_unlock(mw);
+	cursor_absolute(mw);
+	cursor_unconfine(mw);
 	fb_destroy(mw);
 
 	if (be->xdg_toplevel)
@@ -1185,7 +1201,8 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	mw->width = width;
 	mw->height = height;
 	mw->stride = width;
-	be->cursor_state = MAUS_CURSOR_STATE_VISIBLE;
+	be->cursor_visible = 1;
+	be->cursor_confined = 0;
 
 	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
 	if (!mw->bfb)
@@ -1321,28 +1338,24 @@ void maus_cur_set_mode(Maus* mw, MausCursorState state)
 {
 	switch (state) {
 	case MAUS_CURSOR_STATE_VISIBLE:
+		mw->backend.cursor_visible = 1;
 		cursor_show(mw);
-		mw->backend.cursor_state = state;
 		break;
 	case MAUS_CURSOR_STATE_HIDDEN:
+		mw->backend.cursor_visible = 0;
 		cursor_hide(mw);
-		mw->backend.cursor_state = state;
 		break;
 	case MAUS_CURSOR_STATE_LOCKED:
-		mw->backend.cursor_state = state;
-		cursor_lock(mw);
+		cursor_confine(mw);
 		break;
 	case MAUS_CURSOR_STATE_FREE:
-		cursor_unlock(mw);
-		mw->backend.cursor_state = state;
+		cursor_unconfine(mw);
 		break;
 	case MAUS_CURSOR_STATE_RELATIVE:
 		cursor_relative(mw);
-		mw->backend.cursor_state = state;
 		break;
 	case MAUS_CURSOR_STATE_ABSOLUTE:
 		cursor_absolute(mw);
-		mw->backend.cursor_state = state;
 		break;
 	default:
 		break;
