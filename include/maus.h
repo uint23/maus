@@ -62,7 +62,8 @@ typedef enum {
 	MAUS_EV_MOUSE_BUTTON,
 	MAUS_EV_MOUSE_MOTION,
 	MAUS_EV_RESIZE,
-	MAUS_EV_REDRAW /* TODO: MAUS_EV_REDRAW for windows */
+	MAUS_EV_REDRAW, /* TODO: MAUS_EV_REDRAW for windows */
+	MAUS_EV_LAST
 } MausEventType;
 
 typedef struct {
