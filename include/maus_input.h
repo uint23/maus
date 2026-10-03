@@ -1,7 +1,6 @@
 #ifndef MAUS_INPUT_H
 #define MAUS_INPUT_H
 
-#define ULE_SHORT_TYPE_NAMES
 #include "uletypes.h"
 
 typedef enum {
@@ -64,8 +63,8 @@ typedef enum {
 } MausKey;
 
 typedef struct {
-	i32 x;
-	i32 y;
+	ule_i32 x;
+	ule_i32 y;
 } MausCursor;
 
 typedef enum {

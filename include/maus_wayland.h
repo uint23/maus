@@ -2,7 +2,6 @@
 #define MAUS_WAYLAND_H
 
 #include <stddef.h>
-#define ULE_SHORT_TYPE_NAMES
 #include "uletypes.h"
 
 #define MAUS_EVQ_MAX 64
@@ -36,30 +35,30 @@ struct xkb_keymap;
 struct xkb_state;
 
 typedef struct {
-	i8  pending;
-	i32 type;
+	ule_i8  pending;
+	ule_i32 type;
 
-	u32 width;
-	u32 height;
+	ule_u32 width;
+	ule_u32 height;
 
-	i32  mouse_x;
-	i32  mouse_y;
-	i32  mouse_dx;
-	i32  mouse_dy;
-	u32 mouse_button;
-	u8  mouse_pressed;
+	ule_i32  mouse_x;
+	ule_i32  mouse_y;
+	ule_i32  mouse_dx;
+	ule_i32  mouse_dy;
+	ule_u32 mouse_button;
+	ule_u8  mouse_pressed;
 
-	u32 key_code;
-	u32 key_sym;
+	ule_u32 key_code;
+	ule_u32 key_sym;
 	char     key_text;
-	u8  key_pressed;
+	ule_u8  key_pressed;
 } MausEventPending;
 
 typedef struct {
 	struct wl_buffer* buffer;
 	void*             data;
 	size_t            size;
-	i8            busy;
+	ule_i8            busy;
 } MausWLBuffer;
 
 typedef struct {
@@ -77,12 +76,12 @@ typedef struct {
 	struct wl_cursor_theme* cursor_theme;
 	struct wl_cursor*       cursor;
 	struct wl_surface*      cursor_surface;
-	u32                pointer_enter_serial;
-	i32                 mouse_x;
-	i32                 mouse_y;
-	i8                  mouse_pos_set;
-	i8                  cursor_visible;
-	i8                  cursor_confined;
+	ule_u32                pointer_enter_serial;
+	ule_i32                 mouse_x;
+	ule_i32                 mouse_y;
+	ule_i8                  mouse_pos_set;
+	ule_i8                  cursor_visible;
+	ule_i8                  cursor_confined;
 
 	struct zwp_pointer_constraints_v1*      pointer_constraints;
 	struct zwp_confined_pointer_v1*         confined_pointer;
@@ -97,21 +96,21 @@ typedef struct {
 
 	MausEventPending pending;
 	MausEventPending evq[MAUS_EVQ_MAX];
-	u32 evq_head;
-	u32 evq_tail;
-	u32 evq_count;
+	ule_u32 evq_head;
+	ule_u32 evq_tail;
+	ule_u32 evq_count;
 
-	i32  repeat_rate;
-	i32  repeat_delay;
-	u32 repeat_key_code;
-	u32 repeat_key_sym;
+	ule_i32  repeat_rate;
+	ule_i32  repeat_delay;
+	ule_u32 repeat_key_code;
+	ule_u32 repeat_key_sym;
 	char     repeat_key_text;
-	u64 repeat_next_ns;
+	ule_u64 repeat_next_ns;
 
 	struct xdg_wm_base*  wm_base;
 	struct xdg_surface*  xdg_surface;
 	struct xdg_toplevel* xdg_toplevel;
-	i8               configured;
+	ule_i8               configured;
 
 	struct wl_registry*          registry;
 } MausBackend;

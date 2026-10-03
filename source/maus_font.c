@@ -5,25 +5,25 @@
 #include "maus.h"
 #include "maus_font.h"
 
-static void glyph_to_buf(i32 sgx, i32 egx, i32 sgy, i32 egy,
-                         i32 gox, i32 goy, MausGlyph* g, u32 col_up,
-                         u32* buf, u32 stride);
-static i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
-                           i32* encoding, i32* advance, i32* bw, i32* bh,
-                           i32* xoff, i32* yoff, i8* seen);
-static u64 strtou64(const char* str);
+static void glyph_to_buf(ule_i32 sgx, ule_i32 egx, ule_i32 sgy, ule_i32 egy,
+                         ule_i32 gox, ule_i32 goy, MausGlyph* g, ule_u32 col_up,
+                         ule_u32* buf, ule_u32 stride);
+static ule_i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
+                           ule_i32* encoding, ule_i32* advance, ule_i32* bw, ule_i32* bh,
+                           ule_i32* xoff, ule_i32* yoff, ule_i8* seen);
+static ule_u64 strtou64(const char* str);
 
 /* "blit" a glpyh to some buffer */
-static void glyph_to_buf(i32 sgx, i32 egx, i32 sgy, i32 egy,
-                         i32 gox, i32 goy, MausGlyph* g, u32 col_up,
-                         u32* buf, u32 stride)
+static void glyph_to_buf(ule_i32 sgx, ule_i32 egx, ule_i32 sgy, ule_i32 egy,
+                         ule_i32 gox, ule_i32 goy, MausGlyph* g, ule_u32 col_up,
+                         ule_u32* buf, ule_u32 stride)
 {
 	int gy;
 	int gx;
-	i32 dstx;
+	ule_i32 dstx;
 
-	u32* row;
-	i32 offset;
+	ule_u32* row;
+	ule_i32 offset;
 
 	for (gy = sgy; gy < egy; gy++) {
 		int dsty = goy + gy;
@@ -41,15 +41,15 @@ static void glyph_to_buf(i32 sgx, i32 egx, i32 sgy, i32 egy,
 	}
 }
 
-static i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
-                           i32* encoding, i32* advance, i32* bw, i32* bh,
-                           i32* xoff, i32* yoff, i8* seen)
+static ule_i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
+                           ule_i32* encoding, ule_i32* advance, ule_i32* bw, ule_i32* bh,
+                           ule_i32* xoff, ule_i32* yoff, ule_i8* seen)
 {
-	i32 rowbits;
+	ule_i32 rowbits;
 
-	i32 x;
-	i32 y;
-	u64 bits;
+	ule_i32 x;
+	ule_i32 y;
+	ule_u64 bits;
 
 	MausGlyph* g;
 
@@ -125,20 +125,20 @@ static i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
 	return 1;
 }
 
-static u64 strtou64(const char* str)
+static ule_u64 strtou64(const char* str)
 {
-	u64 n = 0;
-	u8 c;
+	ule_u64 n = 0;
+	ule_u8 c;
 
 	while (*str) {
-		c = (u8)*str++;
+		c = (ule_u8)*str++;
 
 		if (c >= '0' && c <= '9')
-			c = (u8)(c - '0');
+			c = (ule_u8)(c - '0');
 		else if (c >= 'A' && c <= 'F')
-			c = (u8)(c - 'A' + 10);
+			c = (ule_u8)(c - 'A' + 10);
 		else if (c >= 'a' && c <= 'f')
-			c = (u8)(c - 'a' + 10);
+			c = (ule_u8)(c - 'a' + 10);
 		else
 			break;
 
@@ -148,28 +148,28 @@ static u64 strtou64(const char* str)
 	return n;
 }
 
-void maus_draw_text(Maus* mw, MausFont* font, i32 x, i32 y,
+void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
                     const char* text, MausColor col)
 {
-	u32 col_up = MAUS_UNPACK_COL(col);
+	ule_u32 col_up = MAUS_UNPACK_COL(col);
 
 	size_t i;
 
 	/* current coordinates */
-	i32 cx = x;
-	i32 cy = y;
+	ule_i32 cx = x;
+	ule_i32 cy = y;
 
 	/* origins to start drawing glyph from */
-	i32 gox;
-	i32 goy;
+	ule_i32 gox;
+	ule_i32 goy;
 
 	/* starting glyph coordinates */
-	i32 sgx;
-	i32 sgy;
+	ule_i32 sgx;
+	ule_i32 sgy;
 
 	/* ending glyph coordinates */
-	i32 egx;
-	i32 egy;
+	ule_i32 egx;
+	ule_i32 egy;
 
 	/* current glyph pointer */
 	MausGlyph* g;
@@ -186,7 +186,7 @@ void maus_draw_text(Maus* mw, MausFont* font, i32 x, i32 y,
 			continue;
 		}
 
-		g = &font->glyphs[(u8)c];
+		g = &font->glyphs[(ule_u8)c];
 		if (!g->valid) {
 			/* still advance cx if character invalid */
 			cx += (font->cellw > 0 ? font->cellw : 8);
@@ -221,15 +221,15 @@ MausFont* maus_font_load(const char* path)
 	MausFont* font = calloc(1, sizeof(MausFont));
 	char line[1024];
 
-	i32 asc = -1;
-	i32 dsc = -1;
-	i32 encoding = -1;
-	i32 advance = 0;
-	i32 bw = 0; /* bmp width */
-	i32 bh = 0; /* bmp height */
-	i32 xoff = 0;
-	i32 yoff = 0;
-	i8 seen = 0;
+	ule_i32 asc = -1;
+	ule_i32 dsc = -1;
+	ule_i32 encoding = -1;
+	ule_i32 advance = 0;
+	ule_i32 bw = 0; /* bmp width */
+	ule_i32 bh = 0; /* bmp height */
+	ule_i32 xoff = 0;
+	ule_i32 yoff = 0;
+	ule_i8 seen = 0;
 
 	int i;
 

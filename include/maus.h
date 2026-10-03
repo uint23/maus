@@ -2,7 +2,6 @@
 #define MAUS_H
 
 #include <stdio.h>
-#define ULE_SHORT_TYPE_NAMES
 #include "uletypes.h"
 
 #include "maus_input.h"
@@ -49,10 +48,10 @@
 #define MAUS_COL_ARGB(a, r, g, b) (MausColor){a, r, g, b}
 #define MAUS_COL_RGBA(r, g, b, a) (MausColor){a, r, g, b}
 #define MAUS_UNPACK_COL(c) \
-	(((u32)(c).a << 24) | \
-	 ((u32)(c).r << 16) | \
-	 ((u32)(c).g <<  8) | \
-	 ((u32)(c).b))
+	(((ule_u32)(c).a << 24) | \
+	 ((ule_u32)(c).r << 16) | \
+	 ((ule_u32)(c).g <<  8) | \
+	 ((ule_u32)(c).b))
 
 #define MAUS_PIXEL_AT(mw, x, y) ((mw)->bfb[(y) * (mw)->stride + (x)])
 
@@ -68,62 +67,62 @@ typedef enum {
 } MausEventType;
 
 typedef struct {
-	u8 a;
-	u8 r;
-	u8 g;
-	u8 b;
+	ule_u8 a;
+	ule_u8 r;
+	ule_u8 g;
+	ule_u8 b;
 } MausColor;
 
 typedef struct {
 	MausEventType type;
 
 	struct {
-		u32 code; /* raw, backend keycode */
+		ule_u32 code; /* raw, backend keycode */
 		MausKey key;  /* logical, mapped key */
 		char    text; /* translated text from key */
-		i8      pressed;
+		ule_i8      pressed;
 	} key;
 
 	struct {
 		struct {
 			MausMouseButton button;
-			i8              pressed;
+			ule_i8              pressed;
 		} button;
 
 		struct {
-			i32 x;
-			i32 y;
-			i32 dx;
-			i32 dy;
+			ule_i32 x;
+			ule_i32 y;
+			ule_i32 dx;
+			ule_i32 dy;
 		} motion;
 	} mouse;
 
 	struct {
-		u32 width;
-		u32 height;
+		ule_u32 width;
+		ule_u32 height;
 	} resize;
 } MausEvent;
 
 typedef struct {
 	MausBackend backend;
-	u64    frame_time_last;
+	ule_u64    frame_time_last;
 	char*  clipboard;
 
-	u32* fb;  /* front frame buffer */
-	u32* bfb; /* back frame buffer */
-	u32  stride;
+	ule_u32* fb;  /* front frame buffer */
+	ule_u32* bfb; /* back frame buffer */
+	ule_u32  stride;
 
 	const char* title;
-	u32 width;
-	u32 height;
-	i32 x;
-	i32 y;
+	ule_u32 width;
+	ule_u32 height;
+	ule_i32 x;
+	ule_i32 y;
 
-	i8 key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
-	i8 key_syms[MAUS_KEY_LAST];      /* logical keys */
+	ule_i8 key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
+	ule_i8 key_syms[MAUS_KEY_LAST];      /* logical keys */
 
 	MausCursor cursor;
-	i8         mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
+	ule_i8         mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
 } Maus;
 
 /* clear screen with color: `col` */
@@ -140,16 +139,16 @@ char* maus_clipboard_get_text(Maus* mw);
 void maus_close(Maus* mw);
 
 /* close a window without the whole Maus. returns 0 on fail */
-i8 maus_close_window(Maus* mw);
+ule_i8 maus_close_window(Maus* mw);
 
 /* create window from Maus. returns 0 on fail */
-i8 maus_create_window(Maus* mw);
+ule_i8 maus_create_window(Maus* mw);
 
 /* log message to output `fd` and die */
 void maus_die(const char* fmt, ...);
 
 /* get time since arbitrary start point (ns) */
-u64 maus_get_time_ns(void);
+ule_u64 maus_get_time_ns(void);
 
 /* initialise and fills the Maus. returns NULL on fail */
 Maus* maus_init(const char* title, int x, int y, int width, int height);
@@ -160,7 +159,7 @@ void maus_log(FILE* fd, const char* fmt, ...);
 /* poll for events then fill `ev` with retrieved events.
    returns 1 if event polled, else 0.
    note: can burn cpu cycles */
-i8 maus_event_poll(Maus* mw, MausEvent* ev);
+ule_i8 maus_event_poll(Maus* mw, MausEvent* ev);
 
 /* poll for events then fill `ev` with retrieved events. returns 1 if event
    polled, else 0. note, thread goes to sleep until an event arrives */
@@ -171,13 +170,13 @@ void maus_present(Maus* mw);
 
 /* resize window to specified width and height. returns 1 on resize success,
    else 0 */
-i8 maus_resize(Maus* mw, u32 width, u32 height);
+ule_i8 maus_resize(Maus* mw, ule_u32 width, ule_u32 height);
 
 /* sleep for `ms` milliseconds */
-void maus_sleep(u32 ms);
+void maus_sleep(ule_u32 ms);
 
 /* cap framerate to targetted fps */
-void maus_target_fps(Maus* mw, u32 fps);
+void maus_target_fps(Maus* mw, ule_u32 fps);
 
 /* change behavior of mouse based on state passed */
 void maus_cur_set_mode(Maus* mw, MausCursorState state);

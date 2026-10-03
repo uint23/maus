@@ -1,7 +1,6 @@
 #ifndef MAUS_WINDOWS_H
 #define MAUS_WINDOWS_H
 
-#define ULE_SHORT_TYPE_NAMES
 #include "uletypes.h"
 
 #include <windows.h>
@@ -12,9 +11,9 @@ typedef struct {
 	HDC       hdc;
 	HBITMAP   hbm;
 	HDC       memdc;
-	i8    resized;
-	u32  rw;
-	u32  rh;
+	ule_i8    resized;
+	ule_u32  rw;
+	ule_u32  rh;
 } MausBackend;
 
 #endif /* MAUS_WINDOWS_H */

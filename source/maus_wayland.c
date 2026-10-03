@@ -17,36 +17,36 @@
 #include "maus.h"
 #include "maus_wayland.h"
 
-static void registry_global_remove(void *data, struct wl_registry *wl_registry, u32 name);
-static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, u32 serial);
-static void xdg_toplevel_configure(void* data, struct xdg_toplevel* xdg_toplevel, i32 width, i32 height, struct wl_array* states);
+static void registry_global_remove(void *data, struct wl_registry *wl_registry, ule_u32 name);
+static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, ule_u32 serial);
+static void xdg_toplevel_configure(void* data, struct xdg_toplevel* xdg_toplevel, ule_i32 width, ule_i32 height, struct wl_array* states);
 static void xdg_toplevel_close(void* data, struct xdg_toplevel* xdg_toplevel);
-static void xdg_toplevel_configure_bounds(void* data, struct xdg_toplevel* xdg_toplevel, i32 width, i32 height);
+static void xdg_toplevel_configure_bounds(void* data, struct xdg_toplevel* xdg_toplevel, ule_i32 width, ule_i32 height);
 static void xdg_toplevel_wm_capabilities(void* data, struct xdg_toplevel* xdg_toplevel, struct wl_array* capabilities);
-static void wm_base_ping(void* data, struct xdg_wm_base* wm_base, u32 serial);
-static void seat_capabilities(void* data, struct wl_seat* seat, u32 capabilities);
+static void wm_base_ping(void* data, struct xdg_wm_base* wm_base, ule_u32 serial);
+static void seat_capabilities(void* data, struct wl_seat* seat, ule_u32 capabilities);
 static void seat_name(void* data, struct wl_seat* seat, const char* name);
-static void pointer_enter(void* data, struct wl_pointer* pointer, u32 serial, struct wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy);
-static void pointer_leave(void* data, struct wl_pointer* pointer, u32 serial, struct wl_surface* surface);
-static void pointer_motion(void* data, struct wl_pointer* pointer, u32 time, wl_fixed_t sx, wl_fixed_t sy);
-static void pointer_button(void* data, struct wl_pointer* pointer, u32 serial, u32 time, u32 button, u32 state);
-static void pointer_axis(void* data, struct wl_pointer* pointer, u32 time, u32 axis, wl_fixed_t value);
+static void pointer_enter(void* data, struct wl_pointer* pointer, ule_u32 serial, struct wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy);
+static void pointer_leave(void* data, struct wl_pointer* pointer, ule_u32 serial, struct wl_surface* surface);
+static void pointer_motion(void* data, struct wl_pointer* pointer, ule_u32 time, wl_fixed_t sx, wl_fixed_t sy);
+static void pointer_button(void* data, struct wl_pointer* pointer, ule_u32 serial, ule_u32 time, ule_u32 button, ule_u32 state);
+static void pointer_axis(void* data, struct wl_pointer* pointer, ule_u32 time, ule_u32 axis, wl_fixed_t value);
 static void pointer_frame(void* data, struct wl_pointer* pointer);
-static void pointer_axis_source(void* data, struct wl_pointer* pointer, u32 axis_source);
-static void pointer_axis_stop(void* data, struct wl_pointer* pointer, u32 time, u32 axis);
-static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, u32 axis, i32 discrete);
-static void pointer_axis_value120(void* data, struct wl_pointer* pointer, u32 axis, i32 value120);
-static void pointer_axis_relative_direction(void* data, struct wl_pointer* pointer, u32 axis, u32 direction);
-static void relative_pointer_motion(void* data, struct zwp_relative_pointer_v1* relative_pointer, u32 utime_hi, u32 utime_lo, wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dx_unaccel, wl_fixed_t dy_unaccel);
-static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, u32 format, i32 fd, u32 size);
-static void keyboard_enter(void* data, struct wl_keyboard* keyboard, u32 serial, struct wl_surface* surface, struct wl_array* keys);
-static void keyboard_leave(void* data, struct wl_keyboard* keyboard, u32 serial, struct wl_surface* surface);
-static void keyboard_key(void* data, struct wl_keyboard* keyboard, u32 serial, u32 time, u32 key, u32 state);
-static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, u32 serial, u32 mods_depressed, u32 mods_latched, u32 mods_locked, u32 group);
-static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard, i32 rate, i32 delay);
-static void registry_global(void* data, struct wl_registry* registry, u32 name, const char* interface, u32 version);
+static void pointer_axis_source(void* data, struct wl_pointer* pointer, ule_u32 axis_source);
+static void pointer_axis_stop(void* data, struct wl_pointer* pointer, ule_u32 time, ule_u32 axis);
+static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, ule_u32 axis, ule_i32 discrete);
+static void pointer_axis_value120(void* data, struct wl_pointer* pointer, ule_u32 axis, ule_i32 value120);
+static void pointer_axis_relative_direction(void* data, struct wl_pointer* pointer, ule_u32 axis, ule_u32 direction);
+static void relative_pointer_motion(void* data, struct zwp_relative_pointer_v1* relative_pointer, ule_u32 utime_hi, ule_u32 utime_lo, wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dx_unaccel, wl_fixed_t dy_unaccel);
+static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, ule_u32 format, ule_i32 fd, ule_u32 size);
+static void keyboard_enter(void* data, struct wl_keyboard* keyboard, ule_u32 serial, struct wl_surface* surface, struct wl_array* keys);
+static void keyboard_leave(void* data, struct wl_keyboard* keyboard, ule_u32 serial, struct wl_surface* surface);
+static void keyboard_key(void* data, struct wl_keyboard* keyboard, ule_u32 serial, ule_u32 time, ule_u32 key, ule_u32 state);
+static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, ule_u32 serial, ule_u32 mods_depressed, ule_u32 mods_latched, ule_u32 mods_locked, ule_u32 group);
+static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard, ule_i32 rate, ule_i32 delay);
+static void registry_global(void* data, struct wl_registry* registry, ule_u32 name, const char* interface, ule_u32 version);
 
-static i8 cursor_init(Maus* mw);
+static ule_i8 cursor_init(Maus* mw);
 static void cursor_destroy(Maus* mw);
 static void cursor_confine(Maus* mw);
 static void cursor_unconfine(Maus* mw);
@@ -55,13 +55,13 @@ static void cursor_hide(Maus* mw);
 static void cursor_relative(Maus* mw);
 static void cursor_absolute(Maus* mw);
 static void event_push_pending(Maus* mw);
-static i8 event_pop(Maus* mw, MausEventPending* ev);
-static void event_push_key(Maus* mw, u32 code, u32 sym, char text, u8 pressed);
-static i8 repeat_push_due(Maus* mw);
-static i32 repeat_timeout_ms(Maus* mw);
-static i8 display_read(Maus* mw, int timeout_ms);
+static ule_i8 event_pop(Maus* mw, MausEventPending* ev);
+static void event_push_key(Maus* mw, ule_u32 code, ule_u32 sym, char text, ule_u8 pressed);
+static ule_i8 repeat_push_due(Maus* mw);
+static ule_i32 repeat_timeout_ms(Maus* mw);
+static ule_i8 display_read(Maus* mw, int timeout_ms);
 static MausKey keysym_to_mauskey(xkb_keysym_t sym);
-static MausMouseButton wl_button_to_maus(u32 button);
+static MausMouseButton wl_button_to_maus(ule_u32 button);
 static void wl_buffer_release(void* data, struct wl_buffer* buffer);
 
 static struct wl_registry_listener registry_listener = { registry_global, registry_global_remove };
@@ -113,7 +113,7 @@ static void event_push_pending(Maus* mw)
 	be->pending.pending = 0;
 }
 
-static i8 event_pop(Maus* mw, MausEventPending* ev)
+static ule_i8 event_pop(Maus* mw, MausEventPending* ev)
 {
 	MausBackend* be = &mw->backend;
 
@@ -126,7 +126,7 @@ static i8 event_pop(Maus* mw, MausEventPending* ev)
 	return 1;
 }
 
-static void event_push_key(Maus* mw, u32 code, u32 sym, char text, u8 pressed)
+static void event_push_key(Maus* mw, ule_u32 code, ule_u32 sym, char text, ule_u8 pressed)
 {
 	MausBackend* be = &mw->backend;
 
@@ -139,14 +139,14 @@ static void event_push_key(Maus* mw, u32 code, u32 sym, char text, u8 pressed)
 	event_push_pending(mw);
 }
 
-static void registry_global_remove(void *data, struct wl_registry *wl_registry, u32 name)
+static void registry_global_remove(void *data, struct wl_registry *wl_registry, ule_u32 name)
 {
 	(void)data;
 	(void)wl_registry;
 	(void)name;
 }
 
-static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, u32 serial)
+static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, ule_u32 serial)
 {
 	Maus* mw = data;
 	xdg_surface_ack_configure(xdg_surface, serial);
@@ -159,7 +159,7 @@ static void xdg_surface_configure(void* data, struct xdg_surface* xdg_surface, u
 }
 
 static void xdg_toplevel_configure(void* data, struct xdg_toplevel* xdg_toplevel,
-                                   i32 width, i32 height, struct wl_array* states)
+                                   ule_i32 width, ule_i32 height, struct wl_array* states)
 {
 	Maus* mw = data;
 
@@ -188,7 +188,7 @@ static void xdg_toplevel_close(void* data, struct xdg_toplevel* xdg_toplevel)
 }
 
 static void xdg_toplevel_configure_bounds(void* data, struct xdg_toplevel* xdg_toplevel,
-                                          i32 width, i32 height)
+                                          ule_i32 width, ule_i32 height)
 {
 	(void)data;
 	(void)xdg_toplevel;
@@ -204,15 +204,15 @@ static void xdg_toplevel_wm_capabilities(void* data, struct xdg_toplevel* xdg_to
 	(void)capabilities;
 }
 
-static void wm_base_ping(void* data, struct xdg_wm_base* wm_base, u32 serial)
+static void wm_base_ping(void* data, struct xdg_wm_base* wm_base, ule_u32 serial)
 {
 	(void)data;
 	xdg_wm_base_pong(wm_base, serial);
 }
 
 static void registry_global(void* data, struct wl_registry* registry,
-                            u32 name, const char* interface,
-                            u32 version)
+                            ule_u32 name, const char* interface,
+                            ule_u32 version)
 {
 	Maus* mw = data;
 	MausBackend* be = &mw->backend;
@@ -237,7 +237,7 @@ static void registry_global(void* data, struct wl_registry* registry,
 		be->relative_pointer_manager = wl_registry_bind(registry, name, &zwp_relative_pointer_manager_v1_interface, 1);
 }
 
-static void seat_capabilities(void* data, struct wl_seat* seat, u32 capabilities)
+static void seat_capabilities(void* data, struct wl_seat* seat, ule_u32 capabilities)
 {
 	Maus* mw = data;
 	MausBackend* be = &mw->backend;
@@ -269,7 +269,7 @@ static void seat_name(void* data, struct wl_seat* seat, const char* name)
 	(void)name;
 }
 
-static void pointer_enter(void* data, struct wl_pointer* pointer, u32 serial,
+static void pointer_enter(void* data, struct wl_pointer* pointer, ule_u32 serial,
                           struct wl_surface* surface, wl_fixed_t sx, wl_fixed_t sy)
 {
 	Maus* mw = data;
@@ -286,7 +286,7 @@ static void pointer_enter(void* data, struct wl_pointer* pointer, u32 serial,
 		cursor_hide(mw);
 }
 
-static void pointer_leave(void* data, struct wl_pointer* pointer, u32 serial,
+static void pointer_leave(void* data, struct wl_pointer* pointer, ule_u32 serial,
                           struct wl_surface* surface)
 {
 	(void)data;
@@ -295,13 +295,13 @@ static void pointer_leave(void* data, struct wl_pointer* pointer, u32 serial,
 	(void)surface;
 }
 
-static void pointer_motion(void* data, struct wl_pointer* pointer, u32 time,
+static void pointer_motion(void* data, struct wl_pointer* pointer, ule_u32 time,
                            wl_fixed_t sx, wl_fixed_t sy)
 {
 	Maus* mw = data;
 	MausBackend* be = &mw->backend;
-	i32 x;
-	i32 y;
+	ule_i32 x;
+	ule_i32 y;
 
 	(void)pointer;
 	(void)time;
@@ -324,8 +324,8 @@ static void pointer_motion(void* data, struct wl_pointer* pointer, u32 time,
 	event_push_pending(mw);
 }
 
-static void pointer_button(void* data, struct wl_pointer* pointer, u32 serial,
-                           u32 time, u32 button, u32 state)
+static void pointer_button(void* data, struct wl_pointer* pointer, ule_u32 serial,
+                           ule_u32 time, ule_u32 button, ule_u32 state)
 {
 	Maus* mw = data;
 	MausMouseButton mb;
@@ -345,8 +345,8 @@ static void pointer_button(void* data, struct wl_pointer* pointer, u32 serial,
 	event_push_pending(mw);
 }
 
-static void pointer_axis(void* data, struct wl_pointer* pointer, u32 time,
-                         u32 axis, wl_fixed_t value)
+static void pointer_axis(void* data, struct wl_pointer* pointer, ule_u32 time,
+                         ule_u32 axis, wl_fixed_t value)
 {
 	Maus* mw = data;
 
@@ -371,22 +371,22 @@ static void pointer_frame(void* data, struct wl_pointer* pointer)
 	(void)pointer;
 }
 
-static void pointer_axis_source(void* data, struct wl_pointer* pointer, u32 axis_source)
+static void pointer_axis_source(void* data, struct wl_pointer* pointer, ule_u32 axis_source)
 {
 	(void)data;
 	(void)pointer;
 	(void)axis_source;
 }
 
-static void pointer_axis_stop(void* data, struct wl_pointer* pointer, u32 time, u32 axis) {
+static void pointer_axis_stop(void* data, struct wl_pointer* pointer, ule_u32 time, ule_u32 axis) {
 	(void)data;
 	(void)pointer;
 	(void)time;
 	(void)axis;
 }
 
-static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, u32 axis,
-                                  i32 discrete)
+static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, ule_u32 axis,
+                                  ule_i32 discrete)
 {
 	(void)data;
 	(void)pointer;
@@ -394,8 +394,8 @@ static void pointer_axis_discrete(void* data, struct wl_pointer* pointer, u32 ax
 	(void)discrete;
 }
 
-static void pointer_axis_value120(void* data, struct wl_pointer* pointer, u32 axis,
-                                  i32 value120)
+static void pointer_axis_value120(void* data, struct wl_pointer* pointer, ule_u32 axis,
+                                  ule_i32 value120)
 {
 	(void)data;
 	(void)pointer;
@@ -404,7 +404,7 @@ static void pointer_axis_value120(void* data, struct wl_pointer* pointer, u32 ax
 }
 
 static void pointer_axis_relative_direction(void* data, struct wl_pointer* pointer,
-                                            u32 axis, u32 direction)
+                                            ule_u32 axis, ule_u32 direction)
 {
 	(void)data;
 	(void)pointer;
@@ -413,7 +413,7 @@ static void pointer_axis_relative_direction(void* data, struct wl_pointer* point
 }
 
 static void relative_pointer_motion(void* data, struct zwp_relative_pointer_v1* relative_pointer,
-                                    u32 utime_hi, u32 utime_lo,
+                                    ule_u32 utime_hi, ule_u32 utime_lo,
                                     wl_fixed_t dx, wl_fixed_t dy,
                                     wl_fixed_t dx_unaccel, wl_fixed_t dy_unaccel)
 {
@@ -434,8 +434,8 @@ static void relative_pointer_motion(void* data, struct zwp_relative_pointer_v1* 
 	event_push_pending(mw);
 }
 
-static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, u32 format,
-                            i32 fd, u32 size)
+static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, ule_u32 format,
+                            ule_i32 fd, ule_u32 size)
 {
 	Maus* mw = data;
 	MausBackend* be = &mw->backend;
@@ -474,7 +474,7 @@ static void keyboard_keymap(void* data, struct wl_keyboard* keyboard, u32 format
 	be->xkb_state = xkb_state_new(be->xkb_keymap);
 }
 
-static void keyboard_enter(void* data, struct wl_keyboard* keyboard, u32 serial,
+static void keyboard_enter(void* data, struct wl_keyboard* keyboard, ule_u32 serial,
                            struct wl_surface* surface, struct wl_array* keys)
 {
 	(void)data;
@@ -484,7 +484,7 @@ static void keyboard_enter(void* data, struct wl_keyboard* keyboard, u32 serial,
 	(void)keys;
 }
 
-static void keyboard_leave(void* data, struct wl_keyboard* keyboard, u32 serial,
+static void keyboard_leave(void* data, struct wl_keyboard* keyboard, ule_u32 serial,
                            struct wl_surface* surface)
 {
 	Maus* mw = data;
@@ -496,17 +496,17 @@ static void keyboard_leave(void* data, struct wl_keyboard* keyboard, u32 serial,
 	mw->backend.repeat_key_code = 0;
 }
 
-static void keyboard_key(void* data, struct wl_keyboard* keyboard, u32 serial,
-                         u32 time, u32 key, u32 state)
+static void keyboard_key(void* data, struct wl_keyboard* keyboard, ule_u32 serial,
+                         ule_u32 time, ule_u32 key, ule_u32 state)
 {
 	Maus* mw = data;
 	MausBackend* be = &mw->backend;
-	u32 code;
+	ule_u32 code;
 	xkb_keysym_t sym;
 	MausKey maus_key;
 	char text[8];
 	int len;
-	u8 pressed;
+	ule_u8 pressed;
 
 	(void)keyboard;
 	(void)serial;
@@ -553,9 +553,9 @@ static void keyboard_key(void* data, struct wl_keyboard* keyboard, u32 serial,
 		be->repeat_key_code = 0;
 }
 
-static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, u32 serial,
-                               u32 mods_depressed, u32 mods_latched,
-                               u32 mods_locked, u32 group)
+static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, ule_u32 serial,
+                               ule_u32 mods_depressed, ule_u32 mods_latched,
+                               ule_u32 mods_locked, ule_u32 group)
 {
 	Maus* mw = data;
 
@@ -573,7 +573,7 @@ static void keyboard_modifiers(void* data, struct wl_keyboard* keyboard, u32 ser
 }
 
 static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
-                                 i32 rate, i32 delay)
+                                 ule_i32 rate, ule_i32 delay)
 {
 	Maus* mw = data;
 
@@ -585,11 +585,11 @@ static void keyboard_repeat_info(void* data, struct wl_keyboard* keyboard,
 		mw->backend.repeat_key_code = 0;
 }
 
-static i8 repeat_push_due(Maus* mw)
+static ule_i8 repeat_push_due(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
-	u64 now;
-	u64 interval;
+	ule_u64 now;
+	ule_u64 interval;
 
 	if (be->repeat_key_code == 0 || be->repeat_rate <= 0)
 		return 0;
@@ -607,11 +607,11 @@ static i8 repeat_push_due(Maus* mw)
 	return 1;
 }
 
-static i32 repeat_timeout_ms(Maus* mw)
+static ule_i32 repeat_timeout_ms(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
-	u64 now;
-	u64 diff;
+	ule_u64 now;
+	ule_u64 diff;
 
 	if (be->repeat_key_code == 0 || be->repeat_rate <= 0)
 		return -1;
@@ -622,10 +622,10 @@ static i32 repeat_timeout_ms(Maus* mw)
 
 	diff = be->repeat_next_ns - now;
 	/* round xto nearest ms */
-	return (i32)((diff + 999999) / 1000000);
+	return (ule_i32)((diff + 999999) / 1000000);
 }
 
-static i8 display_read(Maus* mw, int timeout_ms)
+static ule_i8 display_read(Maus* mw, int timeout_ms)
 {
 	MausBackend* be = &mw->backend;
 	struct pollfd pfd;
@@ -657,7 +657,7 @@ static i8 display_read(Maus* mw, int timeout_ms)
 }
 
 
-static i8 cursor_init(Maus* mw)
+static ule_i8 cursor_init(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
@@ -794,13 +794,13 @@ static void cursor_absolute(Maus* mw)
 		cursor_confine(mw);
 }
 
-static i8 fb_create(Maus* mw);
-static i8 fb_create_buffer(Maus* mw, MausWLBuffer* wb);
-static i8 fb_create_shm(size_t size);
+static ule_i8 fb_create(Maus* mw);
+static ule_i8 fb_create_buffer(Maus* mw, MausWLBuffer* wb);
+static ule_i8 fb_create_shm(size_t size);
 static void fb_destroy(Maus* mw);
-static i8 handle_event(Maus* mw, MausEvent* ev);
+static ule_i8 handle_event(Maus* mw, MausEvent* ev);
 
-static i8 fb_create(Maus* mw)
+static ule_i8 fb_create(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
@@ -818,7 +818,7 @@ static i8 fb_create(Maus* mw)
 	return 1;
 }
 
-static i8 fb_create_buffer(Maus* mw, MausWLBuffer* wb)
+static ule_i8 fb_create_buffer(Maus* mw, MausWLBuffer* wb)
 {
 	MausBackend* be = &mw->backend;
 	struct wl_shm_pool* pool;
@@ -863,7 +863,7 @@ static i8 fb_create_buffer(Maus* mw, MausWLBuffer* wb)
 	return 1;
 }
 
-static i8 fb_create_shm(size_t size)
+static ule_i8 fb_create_shm(size_t size)
 {
 	char name[64];
 	int fd;
@@ -893,7 +893,7 @@ static void fb_destroy(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
-	u32 i;
+	ule_u32 i;
 
 	for (i = 0; i < 2; i++) {
 		if (be->buffers[i].buffer)
@@ -910,7 +910,7 @@ static void fb_destroy(Maus* mw)
 	mw->fb = NULL;
 }
 
-static i8 handle_event(Maus* mw, MausEvent* ev)
+static ule_i8 handle_event(Maus* mw, MausEvent* ev)
 {
 	MausEventPending pending;
 
@@ -952,7 +952,7 @@ static i8 handle_event(Maus* mw, MausEvent* ev)
 	}
 }
 
-static MausMouseButton wl_button_to_maus(u32 button)
+static MausMouseButton wl_button_to_maus(ule_u32 button)
 {
 	switch (button) {
 		case 0x110: return MAUS_MOUSE_BUTTON_LEFT;
@@ -1014,10 +1014,10 @@ static MausKey keysym_to_mauskey(xkb_keysym_t sym)
 
 void maus_clear(Maus* mw, MausColor col)
 {
-	u32 up = MAUS_UNPACK_COL(col);
-	u32 pxs = mw->height * mw->width;
+	ule_u32 up = MAUS_UNPACK_COL(col);
+	ule_u32 pxs = mw->height * mw->width;
 
-	u32 i;
+	ule_u32 i;
 
 	for (i = 0; i < pxs; i++)
 		mw->bfb[i] = up;
@@ -1106,7 +1106,7 @@ void maus_close(Maus* mw)
 	free(mw);
 }
 
-i8 maus_close_window(Maus* mw)
+ule_i8 maus_close_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
@@ -1129,7 +1129,7 @@ i8 maus_close_window(Maus* mw)
 	return 1;
 }
 
-i8 maus_create_window(Maus* mw)
+ule_i8 maus_create_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
@@ -1204,7 +1204,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	be->cursor_visible = 1;
 	be->cursor_confined = 0;
 
-	mw->bfb = calloc(mw->stride * mw->height, sizeof(u32));
+	mw->bfb = calloc(mw->stride * mw->height, sizeof(ule_u32));
 	if (!mw->bfb)
 		goto close;
 
@@ -1215,10 +1215,10 @@ close:
 	return NULL;
 }
 
-i8 maus_event_poll(Maus* mw, MausEvent* ev)
+ule_i8 maus_event_poll(Maus* mw, MausEvent* ev)
 {
 	MausBackend* be = &mw->backend;
-	i8 read;
+	ule_i8 read;
 
 	ev->type = MAUS_EV_NONE;
 
@@ -1248,8 +1248,8 @@ i8 maus_event_poll(Maus* mw, MausEvent* ev)
 void maus_event_wait(Maus* mw, MausEvent* ev)
 {
 	MausBackend* be = &mw->backend;
-	i32 timeout;
-	i8 read;
+	ule_i32 timeout;
+	ule_i8 read;
 
 	ev->type = MAUS_EV_NONE;
 
@@ -1283,7 +1283,7 @@ void maus_present(Maus* mw)
 	MausWLBuffer* wb = NULL;
 	size_t bytes;
 
-	u32 i;
+	ule_u32 i;
 
 	for (i = 0; i < 2; i++) {
 		if (be->buffers[i].buffer && !be->buffers[i].busy) {
@@ -1295,7 +1295,7 @@ void maus_present(Maus* mw)
 	if (!wb)
 		return;
 
-	bytes = mw->stride * mw->height * sizeof(u32);
+	bytes = mw->stride * mw->height * sizeof(ule_u32);
 	memcpy(wb->data, mw->bfb, bytes);
 	mw->fb = wb->data;
 	wb->busy = 1;
@@ -1306,14 +1306,14 @@ void maus_present(Maus* mw)
 	wl_display_flush(be->display);
 }
 
-i8 maus_resize(Maus* mw, u32 width, u32 height)
+ule_i8 maus_resize(Maus* mw, ule_u32 width, ule_u32 height)
 {
-	u32* bfb;
+	ule_u32* bfb;
 
 	if (width == 0 || height == 0)
 		return 0;
 
-	bfb = calloc(width * height, sizeof(u32));
+	bfb = calloc(width * height, sizeof(ule_u32));
 	if (!bfb)
 		return 0;
 

@@ -1,7 +1,6 @@
 #ifndef MAUS_X11_H
 #define MAUS_X11_H
 
-#define ULE_SHORT_TYPE_NAMES
 #include "uletypes.h"
 
 #include <X11/Xlib.h>
@@ -19,16 +18,16 @@ typedef struct {
 	Atom     atoms[MAUS_ATOM_LAST];
 	GC       gc;
 
-	i8 cur_rel; /* relative cursor */
-	i8 ignore_warp;
-	i8 xi2;
+	ule_i8 cur_rel; /* relative cursor */
+	ule_i8 ignore_warp;
+	ule_i8 xi2;
 	int    xi2_opcode;
-	i32 mouse_x;
-	i32 mouse_y;
-	i8  mouse_pos_set;
+	ule_i32 mouse_x;
+	ule_i32 mouse_y;
+	ule_i8  mouse_pos_set;
 
 	XShmSegmentInfo shm;
-	i8          shmat;
+	ule_i8          shmat;
 	XImage*         image; /* TODO: XImage path */
 } MausBackend;
 
