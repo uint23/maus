@@ -1,6 +1,7 @@
 project(
     'maus',
     'c',
+    meson_version: '>=1.1.0',
     default_options: [
         'c_std=c89',
         'warning_level=2',
