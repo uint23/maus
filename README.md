@@ -1,23 +1,26 @@
 ![logo](assets/logo_256x112.png)  
-is a small, cross-platform, software windowing library **now in ANSI C**
+is a small, cross-platform, software windowing library written in ANSI C
 
 ### Building
-Unix:
 ```sh
-./configure [x11|wayland|mac]
-make # That's it!
+meson setup build
+ninja -C build
 ```
-
-Windows:
-```
-.\build.bat [msvc|gcc|clang]
-```
+Now you should have a libmaus_<platform>.a library file. Link that agains any
+project that uses libmaus.
 > If anyone is on Windows, please try to compile past the ANSI conversion.
 > I pretty much converted it without checking so there may still be C99
 > artefacts left behind.
 
-After building, you have a library which you link _your_ sources with. It is
-located in `build/`.
+If you do not have access to meson, here is an example on manually building
+the X11 backend:
+```
+# You don't need to also compile source/maus_font.c
+cc -c source/maus.c source/maus_font.c source/maus_x11.c source/utils.c \
+      -Iinclude -DBACKEND_X11 -lX11 -lXext -lXi
+
+ar rcs libmaus.a maus.o maus_font.o maus_x11.o utils.o
+```
 
 ### Usage
 #### libmaus
