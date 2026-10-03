@@ -21,15 +21,15 @@ typedef struct {
 	MausKey maus;
 } KeyMapEntry;
 
-static int8_t fb_create(Maus* mw);
-static int8_t fb_create_shm(Maus* mw);
-/* TODO static int8_t fb_create_ximage(Maus* mw); */
+static i8 fb_create(Maus* mw);
+static i8 fb_create_shm(Maus* mw);
+/* TODO static i8 fb_create_ximage(Maus* mw); */
 static void fb_destroy(Maus* mw);
-static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw);
+static i8 handle_event(XEvent* xev, MausEvent* ev, Maus* mw);
 static MausKey keysym_to_mauskey(KeySym sym);
 static MausMouseButton mouse_button_to_maus(int btn);
 static int xerr(Display* dpy, XErrorEvent* ev);
-static int8_t xi2_handle_event(Maus* mw, XGenericEventCookie* cookie, MausEvent* ev);
+static i8 xi2_handle_event(Maus* mw, XGenericEventCookie* cookie, MausEvent* ev);
 static void xi2_init(Maus* mw);
 
 static const KeyMapEntry keymap[] = {
@@ -61,7 +61,7 @@ static const KeyMapEntry keymap[] = {
 
 static int xerrored;
 
-static int8_t fb_create(Maus* mw)
+static i8 fb_create(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
@@ -76,7 +76,7 @@ static int8_t fb_create(Maus* mw)
 }
 
 /* allocate and store a new shm for the framebuffer */
-static int8_t fb_create_shm(Maus* mw)
+static i8 fb_create_shm(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 	int scr = DefaultScreen(be->display);
@@ -156,8 +156,8 @@ static int8_t fb_create_shm(Maus* mw)
 	shmctl(be->shm.shmid, IPC_RMID, NULL);
 
 	be->shmat = 1;
-	mw->fb = (uint32_t*) be->image->data;
-	mw->stride = be->image->bytes_per_line / sizeof(uint32_t);
+	mw->fb = (u32*) be->image->data;
+	mw->stride = be->image->bytes_per_line / sizeof(u32);
 
 	return 1;
 }
@@ -194,10 +194,10 @@ static void fb_destroy(Maus* mw)
 	mw->stride = 0;
 }
 
-static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
+static i8 handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 {
 	MausBackend* be = &mw->backend;
-	uint32_t code = 0;
+	u32 code = 0;
 	unsigned int mb;
 	MausMouseButton mbtype;
 
@@ -213,7 +213,7 @@ static int8_t handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 
 	int cx;
 	int cy;
-	int8_t handled;
+	i8 handled;
 
 	if (xev->type == GenericEvent && XGetEventData(be->display, &xev->xcookie)) {
 		handled = xi2_handle_event(mw, &xev->xcookie, ev);
@@ -425,7 +425,7 @@ static int xerr(Display* dpy, XErrorEvent* ev)
 	return 0;
 }
 
-static int8_t xi2_handle_event(Maus* mw, XGenericEventCookie* cookie, MausEvent* ev)
+static i8 xi2_handle_event(Maus* mw, XGenericEventCookie* cookie, MausEvent* ev)
 {
 	MausBackend* be = &mw->backend;
 	XIRawEvent* raw;
@@ -457,8 +457,8 @@ static int8_t xi2_handle_event(Maus* mw, XGenericEventCookie* cookie, MausEvent*
 	}
 
 	ev->type = MAUS_EV_MOUSE_MOTION;
-	ev->mouse.motion.x = (int32_t)dx;
-	ev->mouse.motion.y = (int32_t)dy;
+	ev->mouse.motion.x = (i32)dx;
+	ev->mouse.motion.y = (i32)dy;
 	ev->mouse.motion.dx = ev->mouse.motion.x;
 	ev->mouse.motion.dy = ev->mouse.motion.y;
 	return ev->mouse.motion.dx != 0 || ev->mouse.motion.dy != 0;
@@ -527,7 +527,7 @@ char* maus_clipboard_get_text(Maus* mw)
 	Atom maus_clipboard_prop = XInternAtom(be->display, "MAUS_CLIPBOARD_PROP", False);
 
 	XEvent xev;
-	int8_t ok = 0;
+	i8 ok = 0;
 
 	int timeout;
 
@@ -593,7 +593,7 @@ void maus_close(Maus* mw)
 		XCloseDisplay(be->display);
 }
 
-int8_t maus_close_window(Maus* mw)
+i8 maus_close_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
@@ -610,7 +610,7 @@ int8_t maus_close_window(Maus* mw)
 	return 1;
 }
 
-int8_t maus_create_window(Maus* mw)
+i8 maus_create_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 	Display* dpy = be->display;
@@ -655,9 +655,9 @@ int8_t maus_create_window(Maus* mw)
 
 void maus_clear(Maus* mw, MausColor col)
 {
-	uint32_t col_up = MAUS_UNPACK_COL(col);
-	uint32_t pxs = mw->height * mw->width;
-	uint32_t i;
+	u32 col_up = MAUS_UNPACK_COL(col);
+	u32 pxs = mw->height * mw->width;
+	u32 i;
 	for (i = 0; i < pxs; i++)
 		mw->bfb[i] = col_up;
 }
@@ -705,7 +705,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 		free(mw);
 		return NULL;
 	}
-	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
+	mw->bfb = calloc(mw->stride * mw->height, sizeof(u32));
 	if (!mw->bfb) {
 		maus_log(stderr, "failed to allocate back buffer");
 		maus_close(mw);
@@ -716,7 +716,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	return mw;
 }
 
-int8_t maus_event_poll(Maus* mw, MausEvent* ev)
+i8 maus_event_poll(Maus* mw, MausEvent* ev)
 {
 	MausBackend* be = &mw->backend;
 	XEvent xev;
@@ -748,12 +748,12 @@ void maus_event_wait(Maus* mw, MausEvent* ev)
 void maus_present(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
-	uint32_t bytes;
+	u32 bytes;
 
 	if (!be->image || be->win == None)
 		return;
 
-	bytes = mw->stride * mw->height * sizeof(uint32_t);
+	bytes = mw->stride * mw->height * sizeof(u32);
 	memcpy(mw->fb, mw->bfb, bytes);
 
 	XShmPutImage(
@@ -764,7 +764,7 @@ void maus_present(Maus* mw)
 	XFlush(be->display);
 }
 
-int8_t maus_resize(Maus* mw, uint32_t width, uint32_t height)
+i8 maus_resize(Maus* mw, u32 width, u32 height)
 {
 	MausBackend* be = &mw->backend;
 
@@ -787,7 +787,7 @@ int8_t maus_resize(Maus* mw, uint32_t width, uint32_t height)
 	if (!fb_create(mw))
 		return 0;
 
-	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
+	mw->bfb = calloc(mw->stride * mw->height, sizeof(u32));
 	if (!mw->bfb)
 		return 0;
 

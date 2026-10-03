@@ -30,7 +30,7 @@ void maus_die(const char* fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-uint64_t maus_get_time_ns(void)
+u64 maus_get_time_ns(void)
 {
 #if !defined(_WIN32)
 	struct timespec ts;
@@ -39,8 +39,8 @@ uint64_t maus_get_time_ns(void)
 #else
 	static LARGE_INTEGER frequency = {0};
 	LARGE_INTEGER counter;
-	uint64_t sec;
-	uint64_t rem;
+	u64 sec;
+	u64 rem;
 
 	if (frequency.QuadPart == 0)
 		QueryPerformanceFrequency(&frequency);
@@ -64,7 +64,7 @@ void maus_log(FILE* fd, const char* fmt, ...)
 	va_end(ap);
 }
 
-void maus_sleep(uint32_t ms)
+void maus_sleep(u32 ms)
 {
 #if !defined(_WIN32)
 	struct timespec ts;
@@ -77,12 +77,12 @@ void maus_sleep(uint32_t ms)
 #endif
 }
 
-void maus_target_fps(Maus* mw, uint32_t fps)
+void maus_target_fps(Maus* mw, u32 fps)
 {
-	uint64_t ns_frame;
-	uint64_t cur_time;
-	uint64_t elapsed;
-	uint64_t sleep;
+	u64 ns_frame;
+	u64 cur_time;
+	u64 elapsed;
+	u64 sleep;
 
 	if (fps == 0)
 		return;
@@ -94,7 +94,7 @@ void maus_target_fps(Maus* mw, uint32_t fps)
 	/* if early finish, sleep for the remaining time balance */
 	if (elapsed < ns_frame) {
 		sleep = ns_frame - elapsed;
-		maus_sleep((uint32_t)((sleep + 999999) / 1000000));
+		maus_sleep((u32)((sleep + 999999) / 1000000));
 	}
 
 	mw->frame_time_last = maus_get_time_ns();

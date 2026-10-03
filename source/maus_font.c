@@ -5,21 +5,21 @@
 #include "maus.h"
 #include "maus_font.h"
 
-static void glyph_to_buf(int32_t sgx, int32_t egx, int32_t sgy, int32_t egy,
-                         int32_t gox, int32_t goy, MausGlyph* g, uint32_t col_up,
-                         uint32_t* buf, uint32_t stride);
+static void glyph_to_buf(i32 sgx, i32 egx, i32 sgy, i32 egy,
+                         i32 gox, i32 goy, MausGlyph* g, u32 col_up,
+                         u32* buf, u32 stride);
 
 /* "blit" a glpyh to some buffer */
-static void glyph_to_buf(int32_t sgx, int32_t egx, int32_t sgy, int32_t egy,
-                         int32_t gox, int32_t goy, MausGlyph* g, uint32_t col_up,
-                         uint32_t* buf, uint32_t stride)
+static void glyph_to_buf(i32 sgx, i32 egx, i32 sgy, i32 egy,
+                         i32 gox, i32 goy, MausGlyph* g, u32 col_up,
+                         u32* buf, u32 stride)
 {
 	int gy;
 	int gx;
-	int32_t dstx;
+	i32 dstx;
 
-	uint32_t* row;
-	int32_t offset;
+	u32* row;
+	i32 offset;
 
 	for (gy = sgy; gy < egy; gy++) {
 		int dsty = goy + gy;
@@ -37,15 +37,15 @@ static void glyph_to_buf(int32_t sgx, int32_t egx, int32_t sgy, int32_t egy,
 	}
 }
 
-static int8_t parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
-                           int32_t* encoding, int32_t* advance, int32_t* bw, int32_t* bh,
-                           int32_t* xoff, int32_t* yoff, int8_t* seen)
+static i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
+                           i32* encoding, i32* advance, i32* bw, i32* bh,
+                           i32* xoff, i32* yoff, i8* seen)
 {
-	int32_t rowbits;
+	i32 rowbits;
 
-	int32_t x;
-	int32_t y;
-	uint64_t bits;
+	i32 x;
+	i32 y;
+	u64 bits;
 
 	MausGlyph* g;
 
@@ -121,28 +121,28 @@ static int8_t parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size
 	return 1;
 }
 
-void maus_draw_text(Maus* mw, MausFont* font, int32_t x, int32_t y,
+void maus_draw_text(Maus* mw, MausFont* font, i32 x, i32 y,
                     const char* text, MausColor col)
 {
-	uint32_t col_up = MAUS_UNPACK_COL(col);
+	u32 col_up = MAUS_UNPACK_COL(col);
 
 	size_t i;
 
 	/* current coordinates */
-	int32_t cx = x;
-	int32_t cy = y;
+	i32 cx = x;
+	i32 cy = y;
 
 	/* origins to start drawing glyph from */
-	int32_t gox;
-	int32_t goy;
+	i32 gox;
+	i32 goy;
 
 	/* starting glyph coordinates */
-	int32_t sgx;
-	int32_t sgy;
+	i32 sgx;
+	i32 sgy;
 
 	/* ending glyph coordinates */
-	int32_t egx;
-	int32_t egy;
+	i32 egx;
+	i32 egy;
 
 	/* current glyph pointer */
 	MausGlyph* g;
@@ -159,7 +159,7 @@ void maus_draw_text(Maus* mw, MausFont* font, int32_t x, int32_t y,
 			continue;
 		}
 
-		g = &font->glyphs[(uint8_t)c];
+		g = &font->glyphs[(u8)c];
 		if (!g->valid) {
 			/* still advance cx if character invalid */
 			cx += (font->cellw > 0 ? font->cellw : 8);
@@ -194,15 +194,15 @@ MausFont* maus_font_load(const char* path)
 	MausFont* font = calloc(1, sizeof(MausFont));
 	char line[1024];
 
-	int32_t asc = -1;
-	int32_t dsc = -1;
-	int32_t encoding = -1;
-	int32_t advance = 0;
-	int32_t bw = 0; /* bmp width */
-	int32_t bh = 0; /* bmp height */
-	int32_t xoff = 0;
-	int32_t yoff = 0;
-	int8_t seen = 0;
+	i32 asc = -1;
+	i32 dsc = -1;
+	i32 encoding = -1;
+	i32 advance = 0;
+	i32 bw = 0; /* bmp width */
+	i32 bh = 0; /* bmp height */
+	i32 xoff = 0;
+	i32 yoff = 0;
+	i8 seen = 0;
 
 	int i;
 

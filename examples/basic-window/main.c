@@ -1,4 +1,5 @@
-#include <stdint.h>
+#define ULE_SHORT_TYPE_NAMES
+#include "uletypes.h"
 #include <stdlib.h>
 
 #include "maus.h"
@@ -24,7 +25,7 @@ void handle_ev(Maus* mw, MausEvent* ev)
 			exit(EXIT_SUCCESS);
 			break;
 		case MAUS_EV_KEY: {
-			int8_t* keys = mw->key_syms;
+			i8* keys = mw->key_syms;
 
 			if (keys[MAUS_KEY_CONTROL_L] && keys[MAUS_KEY_Q]) {
 				maus_close(mw);
@@ -104,9 +105,9 @@ int main(void)
 	MausFont* font;
 	MausEvent ev;
 	MausColor red = { 255, 255, 0, 0 };
-	uint32_t red_unpacked;
-	uint32_t x;
-	uint32_t y;
+	u32 red_unpacked;
+	u32 x;
+	u32 y;
 
 	mw = maus_init("basic window", 0, 0, 800, 600);
 	if (!mw)
@@ -131,8 +132,8 @@ int main(void)
 
 		red_unpacked = MAUS_UNPACK_COL(red);
 		if (mx >= 0 && my >= 0 &&
-		    mx < (int32_t)mw->width &&
-		    my < (int32_t)mw->height && mb1_pressed) {
+		    mx < (i32)mw->width &&
+		    my < (i32)mw->height && mb1_pressed) {
 			MAUS_PIXEL_AT(mw, mx, my) = red_unpacked;
 		}
 

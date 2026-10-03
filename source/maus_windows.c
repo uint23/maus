@@ -10,9 +10,9 @@ typedef struct {
 	MausKey maus;
 } KeyMapEntry;
 
-static int8_t fb_create(Maus* mw);
+static i8 fb_create(Maus* mw);
 static void fb_destroy(Maus* mw);
-static int8_t handle_event(const MSG* msg, MausEvent* ev, Maus* mw);
+static i8 handle_event(const MSG* msg, MausEvent* ev, Maus* mw);
 static MausKey vk_to_mauskey(UINT vk);
 static UINT resolve_lr(UINT vk, LPARAM lparam);
 static char translate_text(UINT vk, UINT scan);
@@ -38,7 +38,7 @@ static const KeyMapEntry keymap[] = {
 	{ VK_DIVIDE,   MAUS_KEY_KP_DIVIDE }, { VK_DECIMAL,  MAUS_KEY_KP_DECIMAL },
 };
 
-static int8_t fb_create(Maus* mw)
+static i8 fb_create(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 	BITMAPINFO bmi = {0};
@@ -89,7 +89,7 @@ static void fb_destroy(Maus* mw)
 	mw->stride = 0;
 }
 
-static int8_t handle_event(const MSG* msg, MausEvent* ev, Maus* mw)
+static i8 handle_event(const MSG* msg, MausEvent* ev, Maus* mw)
 {
 	UINT scan;
 	UINT vk;
@@ -161,7 +161,7 @@ static int8_t handle_event(const MSG* msg, MausEvent* ev, Maus* mw)
 			vk = resolve_lr((UINT)msg->wParam, msg->lParam);
 
 			ev->type = MAUS_EV_KEY;
-			ev->key.code = (uint32_t)msg->wParam;
+			ev->key.code = (u32)msg->wParam;
 			ev->key.pressed = 1;
 			ev->key.key = vk_to_mauskey(vk);
 			ev->key.text = translate_text((UINT)msg->wParam, scan);
@@ -177,7 +177,7 @@ static int8_t handle_event(const MSG* msg, MausEvent* ev, Maus* mw)
 			vk = resolve_lr((UINT)msg->wParam, msg->lParam);
 
 			ev->type = MAUS_EV_KEY;
-			ev->key.code = (uint32_t)msg->wParam;
+			ev->key.code = (u32)msg->wParam;
 			ev->key.pressed = 0;
 			ev->key.key = vk_to_mauskey(vk);
 			ev->key.text = 0;
@@ -270,9 +270,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
 void maus_clear(Maus* mw, MausColor col)
 {
-	uint32_t col_up = MAUS_UNPACK_COL(col);
-	uint32_t pxs = mw->height * mw->width;
-	uint32_t i;
+	u32 col_up = MAUS_UNPACK_COL(col);
+	u32 pxs = mw->height * mw->width;
+	u32 i;
 
 	for (i = 0; i < pxs; i++)
 		mw->bfb[i] = col_up;
@@ -361,7 +361,7 @@ void maus_close(Maus* mw)
 		(void) maus_close_window(mw);
 }
 
-int8_t maus_close_window(Maus* mw)
+i8 maus_close_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 
@@ -375,7 +375,7 @@ int8_t maus_close_window(Maus* mw)
 }
 
 
-int8_t maus_create_window(Maus* mw)
+i8 maus_create_window(Maus* mw)
 {
 	MausBackend* be = &mw->backend;
 	be->hInst = GetModuleHandle(NULL);
@@ -429,7 +429,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 		return NULL;
 	}
 
-	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
+	mw->bfb = calloc(mw->stride * mw->height, sizeof(u32));
 	if (!mw->bfb) {
 		maus_log(stderr, "failed to allocate back buffer");
 		maus_close(mw);
@@ -440,7 +440,7 @@ Maus* maus_init(const char* title, int x, int y, int width, int height)
 	return mw;
 }
 
-int8_t maus_event_poll(Maus* mw, MausEvent* ev)
+i8 maus_event_poll(Maus* mw, MausEvent* ev)
 {
 	MausBackend* be = &mw->backend;
 	MSG msg;
@@ -503,21 +503,21 @@ void maus_present(Maus* mw)
 	MausBackend* be = &mw->backend;
 	HDC wdc;
 
-	uint32_t bytes;
+	u32 bytes;
 
 	if (!be->hwnd || !be->memdc)
 		return;
 
 	wdc = GetDC(be->hwnd);
 
-	bytes = mw->stride * mw->height * sizeof(uint32_t);
+	bytes = mw->stride * mw->height * sizeof(u32);
 	memcpy(mw->fb, mw->bfb, bytes);
 
 	BitBlt(wdc, 0, 0, mw->width, mw->height, be->memdc, 0, 0, SRCCOPY);
 	ReleaseDC(be->hwnd, wdc);
 }
 
-int8_t maus_resize(Maus* mw, uint32_t width, uint32_t height)
+i8 maus_resize(Maus* mw, u32 width, u32 height)
 {
 	if (width == 0 || height == 0 ||
 	   (mw->width == width && mw->height == height))
@@ -535,7 +535,7 @@ int8_t maus_resize(Maus* mw, uint32_t width, uint32_t height)
 	if (!fb_create(mw))
 		return 0;
 
-	mw->bfb = calloc(mw->stride * mw->height, sizeof(uint32_t));
+	mw->bfb = calloc(mw->stride * mw->height, sizeof(u32));
 	if (!mw->bfb)
 		return 0;
 

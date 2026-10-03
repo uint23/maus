@@ -2,7 +2,8 @@
 #define MAUS_H
 
 #include <stdio.h>
-#include <stdint.h>
+#define ULE_SHORT_TYPE_NAMES
+#include "uletypes.h"
 
 #include "maus_input.h"
 
@@ -48,10 +49,10 @@
 #define MAUS_COL_ARGB(a, r, g, b) (MausColor){a, r, g, b}
 #define MAUS_COL_RGBA(r, g, b, a) (MausColor){a, r, g, b}
 #define MAUS_UNPACK_COL(c) \
-	(((uint32_t)(c).a << 24) | \
-	 ((uint32_t)(c).r << 16) | \
-	 ((uint32_t)(c).g <<  8) | \
-	 ((uint32_t)(c).b))
+	(((u32)(c).a << 24) | \
+	 ((u32)(c).r << 16) | \
+	 ((u32)(c).g <<  8) | \
+	 ((u32)(c).b))
 
 #define MAUS_PIXEL_AT(mw, x, y) ((mw)->bfb[(y) * (mw)->stride + (x)])
 
@@ -67,62 +68,62 @@ typedef enum {
 } MausEventType;
 
 typedef struct {
-	uint8_t a;
-	uint8_t r;
-	uint8_t g;
-	uint8_t b;
+	u8 a;
+	u8 r;
+	u8 g;
+	u8 b;
 } MausColor;
 
 typedef struct {
 	MausEventType type;
 
 	struct {
-		uint32_t code; /* raw, backend keycode */
-		MausKey  key;  /* logical, mapped key */
-		char     text; /* translated text from key */
-		int8_t     pressed;
+		u32 code; /* raw, backend keycode */
+		MausKey key;  /* logical, mapped key */
+		char    text; /* translated text from key */
+		i8      pressed;
 	} key;
 
 	struct {
 		struct {
 			MausMouseButton button;
-			int8_t            pressed;
+			i8              pressed;
 		} button;
 
 		struct {
-			int32_t x;
-			int32_t y;
-			int32_t dx;
-			int32_t dy;
+			i32 x;
+			i32 y;
+			i32 dx;
+			i32 dy;
 		} motion;
 	} mouse;
 
 	struct {
-		uint32_t width;
-		uint32_t height;
+		u32 width;
+		u32 height;
 	} resize;
 } MausEvent;
 
 typedef struct {
 	MausBackend backend;
-	uint64_t    frame_time_last;
-	char*       clipboard;
+	u64    frame_time_last;
+	char*  clipboard;
 
-	uint32_t* fb;  /* front frame buffer */
-	uint32_t* bfb; /* back frame buffer */
-	uint32_t  stride;
+	u32* fb;  /* front frame buffer */
+	u32* bfb; /* back frame buffer */
+	u32  stride;
 
 	const char* title;
-	uint32_t    width;
-	uint32_t    height;
-	int32_t     x;
-	int32_t     y;
+	u32 width;
+	u32 height;
+	i32 x;
+	i32 y;
 
-	int8_t key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
-	int8_t key_syms[MAUS_KEY_LAST];      /* logical keys */
+	i8 key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
+	i8 key_syms[MAUS_KEY_LAST];      /* logical keys */
 
 	MausCursor cursor;
-	int8_t       mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
+	i8         mouse_buttons[MAUS_MOUSE_BUTTON_LAST];
 } Maus;
 
 /* clear screen with color: `col` */
@@ -139,16 +140,16 @@ char* maus_clipboard_get_text(Maus* mw);
 void maus_close(Maus* mw);
 
 /* close a window without the whole Maus. returns 0 on fail */
-int8_t maus_close_window(Maus* mw);
+i8 maus_close_window(Maus* mw);
 
 /* create window from Maus. returns 0 on fail */
-int8_t maus_create_window(Maus* mw);
+i8 maus_create_window(Maus* mw);
 
 /* log message to output `fd` and die */
 void maus_die(const char* fmt, ...);
 
 /* get time since arbitrary start point (ns) */
-uint64_t maus_get_time_ns(void);
+u64 maus_get_time_ns(void);
 
 /* initialise and fills the Maus. returns NULL on fail */
 Maus* maus_init(const char* title, int x, int y, int width, int height);
@@ -159,7 +160,7 @@ void maus_log(FILE* fd, const char* fmt, ...);
 /* poll for events then fill `ev` with retrieved events.
    returns 1 if event polled, else 0.
    note: can burn cpu cycles */
-int8_t maus_event_poll(Maus* mw, MausEvent* ev);
+i8 maus_event_poll(Maus* mw, MausEvent* ev);
 
 /* poll for events then fill `ev` with retrieved events. returns 1 if event
    polled, else 0. note, thread goes to sleep until an event arrives */
@@ -170,13 +171,13 @@ void maus_present(Maus* mw);
 
 /* resize window to specified width and height. returns 1 on resize success,
    else 0 */
-int8_t maus_resize(Maus* mw, uint32_t width, uint32_t height);
+i8 maus_resize(Maus* mw, u32 width, u32 height);
 
 /* sleep for `ms` milliseconds */
-void maus_sleep(uint32_t ms);
+void maus_sleep(u32 ms);
 
 /* cap framerate to targetted fps */
-void maus_target_fps(Maus* mw, uint32_t fps);
+void maus_target_fps(Maus* mw, u32 fps);
 
 /* change behavior of mouse based on state passed */
 void maus_cur_set_mode(Maus* mw, MausCursorState state);

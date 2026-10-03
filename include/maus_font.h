@@ -1,33 +1,34 @@
 #ifndef MAUS_FONT_H
 #define MAUS_FONT_H
 
-#include <stdint.h>
+#define ULE_SHORT_TYPE_NAMES
+#include "uletypes.h"
 
 #include "maus.h"
 
 #define MAUS_BDF_GLYPHS_MAX 256
 
 typedef struct {
-	uint8_t* bmp;
-	uint16_t w;
-	uint16_t h;
-	int16_t  xoff;
-	int16_t  yoff;
-	uint16_t adv;
-	int8_t   valid;
+	u8* bmp;
+	u16 w;
+	u16 h;
+	i16 xoff;
+	i16 yoff;
+	u16 adv;
+	i8  valid;
 } MausGlyph;
 
 typedef struct {
 	MausGlyph glyphs[MAUS_BDF_GLYPHS_MAX];
 
-	int32_t asc;
-	int32_t dsc;
-	int32_t cellh;
-	int32_t cellw;
+	i32 asc;
+	i32 dsc;
+	i32 cellh;
+	i32 cellw;
 } MausFont;
 
 /* Loops through text passing parameters to glyph drawer */
-void maus_draw_text(Maus* mw, MausFont* font, int32_t x, int32_t y,
+void maus_draw_text(Maus* mw, MausFont* font, i32 x, i32 y,
                     const char* text, MausColor col);
 
 /* load a bdf font into MausFont. returns NULL on fail */
