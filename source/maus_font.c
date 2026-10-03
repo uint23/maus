@@ -8,6 +8,10 @@
 static void glyph_to_buf(i32 sgx, i32 egx, i32 sgy, i32 egy,
                          i32 gox, i32 goy, MausGlyph* g, u32 col_up,
                          u32* buf, u32 stride);
+static i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
+                           i32* encoding, i32* advance, i32* bw, i32* bh,
+                           i32* xoff, i32* yoff, i8* seen);
+static u64 strtou64(const char* str);
 
 /* "blit" a glpyh to some buffer */
 static void glyph_to_buf(i32 sgx, i32 egx, i32 sgy, i32 egy,
@@ -97,7 +101,7 @@ static i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
 					return 0;
 				}
 
-				bits = strtoull(line, NULL, 16); /* hex to bits */
+				bits = strtou64(line);
 				for (x = 0; x < *bw; x++) {
 					int bit = rowbits - 1 - x;
 
@@ -119,6 +123,29 @@ static i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
 	}
 
 	return 1;
+}
+
+static u64 strtou64(const char* str)
+{
+	u64 n = 0;
+	u8 c;
+
+	while (*str) {
+		c = (u8)*str++;
+
+		if (c >= '0' && c <= '9')
+			c = (u8)(c - '0');
+		else if (c >= 'A' && c <= 'F')
+			c = (u8)(c - 'A' + 10);
+		else if (c >= 'a' && c <= 'f')
+			c = (u8)(c - 'a' + 10);
+		else
+			break;
+
+		n = (n << 4) | c;
+	}
+
+	return n;
 }
 
 void maus_draw_text(Maus* mw, MausFont* font, i32 x, i32 y,
