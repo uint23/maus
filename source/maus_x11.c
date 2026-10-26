@@ -112,7 +112,12 @@ static ule_i8 fb_create_shm(Maus* mw)
 	}
 
 	size = be->image->bytes_per_line * be->image->height;
+#ifdef __OpenBSD__
+	be->shm.shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0666);
+#else
 	be->shm.shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0600);
+#endif
+
 	if (be->shm.shmid < 0) {
 		XDestroyImage(be->image);
 		be->image = NULL;
@@ -419,8 +424,10 @@ static MausMouseButton mouse_button_to_maus(int btn)
 
 static int xerr(Display* dpy, XErrorEvent* ev)
 {
-	(void) dpy;
-	(void) ev;
+	char buf[256];
+
+	XGetErrorText(dpy, ev->error_code, buf, sizeof(buf));
+	maus_log(stderr, "X11 error: %s (request=%u, minor=%u, resource=%lu)", buf, ev->request_code, ev->minor_code, ev->resourceid);
 	xerrored = 1;
 	return 0;
 }
