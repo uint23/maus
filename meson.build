@@ -46,6 +46,10 @@ if backend == 'x11'
     ]
     backend_sources += ['source/maus_x11.c']
 
+    if host_machine.system() == 'openbsd'
+        c_args += ['-I/usr/X11R6/include']
+    endif
+
 elif backend == 'wayland'
     c_args += ['-DBACKEND_WAY']
     backend_override_options = ['c_std=c99']
