@@ -182,31 +182,62 @@ static ule_u64 strtou64(const char* str)
 	return n;
 }
 
-void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
-                    const char* text, MausColor col)
+void maus_draw_char(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
+                    ule_i32 codepoint, MausColor col)
 {
 	ule_u32 col_up = MAUS_UNPACK_COL(col);
 
+	/* origins to start drawing glyph from */
+	ule_i32 gox = 0;
+	ule_i32 goy = 0;
+
+	/* starting glyph coordinates */
+	ule_i32 sgx = 0;
+	ule_i32 sgy = 0;
+
+	/* ending glyph coordinates */
+	ule_i32 egx = 0;
+	ule_i32 egy = 0;
+
+	/* current glyph */
+	MausGlyph* g = 0;
+
+	if (!mw || !mw->bfb || !font)
+		return;
+
+	g = get_glyph(font, codepoint, 0);
+	if (!g || !g->valid)
+		return;
+
+	/* origins to start drawing glyph from */
+	gox = x + g->xoff;
+	goy = y + font->asc - g->h - g->yoff;
+
+	/* starting coordinates */
+	sgx = (-gox > 0) ? -gox : 0;
+	sgy = (-goy > 0) ? -goy : 0;
+
+	egx = (mw->width - gox < g->w) ? (mw->width - gox) : g->w;
+	egy = (mw->height - goy < g->h) ? (mw->height - goy) : g->h;
+
+	/* cull glyphs which start off screen */
+	if (sgx >= egx || sgy >= egy)
+		return;
+
+	glyph_to_buf(sgx, egx, sgy, egy, gox, goy, g, col_up, mw->bfb, mw->stride);
+}
+
+void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
+                    const char* text, MausColor col)
+{
 	ule_i32 cp = 0;
 
 	/* current coordinates */
 	ule_i32 cx = x;
 	ule_i32 cy = y;
 
-	/* origins to start drawing glyph from */
-	ule_i32 gox;
-	ule_i32 goy;
-
-	/* starting glyph coordinates */
-	ule_i32 sgx;
-	ule_i32 sgy;
-
-	/* ending glyph coordinates */
-	ule_i32 egx;
-	ule_i32 egy;
-
-	/* current glyph pointer */
-	MausGlyph* g;
+	/* current glyph */
+	MausGlyph* g = NULL;
 
 	if (!mw || !mw->bfb || !font || !text)
 		return;
@@ -220,6 +251,8 @@ void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
 			continue;
 		}
 
+		maus_draw_char(mw, font, cx, cy, cp, col);
+
 		g = get_glyph(font, cp, 0);
 		if (!g || !g->valid) {
 			/* still advance cx if character invalid */
@@ -227,158 +260,7 @@ void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
 			continue;
 		}
 
-		/* origins to start drawing glyph from */
-		gox = cx + g->xoff;
-		goy = cy + font->asc - g->h - g->yoff;
-
-		/* starting coordinates */
-		sgx = (-gox > 0) ? -gox : 0;
-		sgy = (-goy > 0) ? -goy : 0;
-
-		egx = (mw->width - gox < g->w) ? (mw->width - gox) : g->w;
-		egy = (mw->height - goy < g->h) ?(mw->height - goy) : g->h;
-
-		/* cull glyphs which start off screen */
-		if (sgx >= egx || sgy >= egy) {
-			cx += g->adv;
-			continue;
-		}
-
-		glyph_to_buf(sgx, egx, sgy, egy, gox, goy, g, col_up, mw->bfb, mw->stride);
 		cx += g->adv;
 	}
-}
-
-MausFont* maus_font_load(const char* path)
-{
-	FILE* f = fopen(path, "r");
-	MausFont* font = calloc(1, sizeof(MausFont));
-	char line[1024];
-
-	ule_i32 asc = -1;
-	ule_i32 dsc = -1;
-	ule_i32 encoding = -1;
-	ule_i32 advance = 0;
-	ule_i32 bw = 0; /* bmp width */
-	ule_i32 bh = 0; /* bmp height */
-	ule_i32 xoff = 0;
-	ule_i32 yoff = 0;
-	ule_i8 seen = 0;
-
-	int i = 0;
-	int page = 0;
-	int index = 0;
-
-	if (!f) {
-		maus_log(stderr, "failed to load font \"%s\"", path);
-		return NULL;
-	}
-
-	if (!font) {
-		maus_log(stderr, "failed to calloc font");
-		fclose(f);
-		return NULL;
-	}
-
-	while (fgets(line, sizeof(line), f)) {
-		if (sscanf(line, "FONT_ASCENT %d", &asc) == 1)
-			continue;
-		if (sscanf(line, "FONT_DESCENT %d", &dsc) == 1)
-			continue;
-
-		/* ignore everything until glyphs start */
-		if (strncmp(line, "STARTCHAR", 9) != 0)
-			continue;
-
-		/* reset vaules for new glyph */
-		encoding = -1;
-		advance = 0;
-		bw = 0;
-		bh = 0;
-		xoff = 0;
-		yoff = 0;
-
-		if (!parse_glyphs(f, font, line, sizeof(line), &encoding, &advance, &bw, &bh, &xoff, &yoff, &seen))
-			return NULL;
-	}
-
-
-	fclose(f);
-
-	if (!seen) {
-		free(font);
-		return NULL;
-	}
-
-	/* estimate asc/dsc if they werent provided */
-	if (asc < 0 || dsc < 0) {
-		asc = 0;
-		dsc = 0;
-
-		for (i = 0; i < MAUS_UNICODE_PLANES; i++) {
-			if (!font->glyphs[i])
-				continue;
-
-			for (page = 0; page < MAUS_GLYPH_PAGE_SIZE; page++) {
-				if (!font->glyphs[i][page])
-					continue;
-
-				for (index = 0; index < MAUS_GLYPH_PAGE_SIZE; index++) {
-					MausGlyph* g = &font->glyphs[i][page][index];
-
-					/* unloaded glpyh */
-					if (!g->valid)
-						continue;
-
-					/* highest point above baseline */
-					if (g->h + g->yoff > asc)
-						asc = g->h + g->yoff;
-
-					/* lowest point below baseline */
-					if (-g->yoff > dsc)
-						dsc = -g->yoff;
-				}
-			}
-		}
-	}
-
-	font->asc = asc;
-	font->dsc = -dsc;
-	font->cellh = asc + dsc;
-
-	if (font->cellw <= 0 || font->cellh <= 0) {
-		maus_font_free(font);
-		return NULL;
-	}
-
-	return font;
-}
-
-void maus_font_free(MausFont* font)
-{
-	int i = 0;
-	int page = 0;
-	int index = 0;
-
-	if (!font)
-		return;
-
-	for (i = 0; i < MAUS_UNICODE_PLANES; i++) {
-		if (!font->glyphs[i])
-			continue;
-
-		for (page = 0; page < MAUS_GLYPH_PAGE_SIZE; page++) {
-			if (!font->glyphs[i][page])
-				continue;
-
-			for (index = 0; index < MAUS_GLYPH_PAGE_SIZE; index++)
-				free(font->glyphs[i][page][index].bmp);
-
-			free(font->glyphs[i][page]);
-		}
-		free(font->glyphs[i]);
-	}
-
-	free(font);
 }
 

@@ -28,6 +28,10 @@ typedef struct {
 	ule_i32 cellw;
 } MausFont;
 
+/* draw a codepoint to screen buffer (unicode supported) */
+void maus_draw_char(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
+                    ule_i32 codepoint, MausColor col);
+
 /* draw a string to screen buffer (unicode supported) */
 void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
                     const char* text, MausColor col);
