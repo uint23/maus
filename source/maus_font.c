@@ -264,3 +264,136 @@ void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
 	}
 }
 
+MausFont* maus_font_load(const char* path)
+{
+	FILE* f = fopen(path, "r");
+	MausFont* font = calloc(1, sizeof(MausFont));
+	char line[1024];
+
+	ule_i32 asc = -1;
+	ule_i32 dsc = -1;
+	ule_i32 encoding = -1;
+	ule_i32 advance = 0;
+	ule_i32 bw = 0; /* bmp width */
+	ule_i32 bh = 0; /* bmp height */
+	ule_i32 xoff = 0;
+	ule_i32 yoff = 0;
+	ule_i8 seen = 0;
+
+	int i = 0;
+	int page = 0;
+	int index = 0;
+
+	if (!f) {
+		maus_log(stderr, "failed to load font \"%s\"", path);
+		return NULL;
+	}
+
+	if (!font) {
+		maus_log(stderr, "failed to calloc font");
+		fclose(f);
+		return NULL;
+	}
+
+	while (fgets(line, sizeof(line), f)) {
+		if (sscanf(line, "FONT_ASCENT %d", &asc) == 1)
+			continue;
+		if (sscanf(line, "FONT_DESCENT %d", &dsc) == 1)
+			continue;
+
+		/* ignore everything until glyphs start */
+		if (strncmp(line, "STARTCHAR", 9) != 0)
+			continue;
+
+		/* reset vaules for new glyph */
+		encoding = -1;
+		advance = 0;
+		bw = 0;
+		bh = 0;
+		xoff = 0;
+		yoff = 0;
+
+		if (!parse_glyphs(f, font, line, sizeof(line), &encoding, &advance, &bw, &bh, &xoff, &yoff, &seen))
+			return NULL;
+	}
+
+
+	fclose(f);
+
+	if (!seen) {
+		free(font);
+		return NULL;
+	}
+
+	/* estimate asc/dsc if they werent provided */
+	if (asc < 0 || dsc < 0) {
+		asc = 0;
+		dsc = 0;
+
+		for (i = 0; i < MAUS_UNICODE_PLANES; i++) {
+			if (!font->glyphs[i])
+				continue;
+
+			for (page = 0; page < MAUS_GLYPH_PAGE_SIZE; page++) {
+				if (!font->glyphs[i][page])
+					continue;
+
+				for (index = 0; index < MAUS_GLYPH_PAGE_SIZE; index++) {
+					MausGlyph* g = &font->glyphs[i][page][index];
+
+					/* unloaded glpyh */
+					if (!g->valid)
+						continue;
+
+					/* highest point above baseline */
+					if (g->h + g->yoff > asc)
+						asc = g->h + g->yoff;
+
+					/* lowest point below baseline */
+					if (-g->yoff > dsc)
+						dsc = -g->yoff;
+				}
+			}
+		}
+	}
+
+	font->asc = asc;
+	font->dsc = -dsc;
+	font->cellh = asc + dsc;
+
+	if (font->cellw <= 0 || font->cellh <= 0) {
+		maus_font_free(font);
+		return NULL;
+	}
+
+	return font;
+}
+
+void maus_font_free(MausFont* font)
+{
+	int i = 0;
+	int page = 0;
+	int index = 0;
+
+	if (!font)
+		return;
+
+	for (i = 0; i < MAUS_UNICODE_PLANES; i++) {
+		if (!font->glyphs[i])
+			continue;
+
+		for (page = 0; page < MAUS_GLYPH_PAGE_SIZE; page++) {
+			if (!font->glyphs[i][page])
+				continue;
+
+			for (index = 0; index < MAUS_GLYPH_PAGE_SIZE; index++)
+				free(font->glyphs[i][page][index].bmp);
+
+			free(font->glyphs[i][page]);
+		}
+		free(font->glyphs[i]);
+	}
+
+	free(font);
+}
+
