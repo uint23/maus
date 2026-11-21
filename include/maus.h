@@ -45,8 +45,9 @@
 #endif
 
 #define MAUS_KEYCODE_LAST (256)
-#define MAUS_COL_ARGB(a, r, g, b) (MausColor){a, r, g, b}
-#define MAUS_COL_RGBA(r, g, b, a) (MausColor){a, r, g, b}
+/* TODO remove */
+#define MAUS_COL_ARGB(a, r, g, b) maus_color_argb((a), (r), (g), (b))
+#define MAUS_COL_RGBA(r, g, b, a) maus_color_argb((a), (r), (g), (b))
 #define MAUS_UNPACK_COL(c) \
 	(((ule_u32)(c).a << 24) | \
 	 ((ule_u32)(c).r << 16) | \
@@ -127,6 +128,9 @@ typedef struct {
 
 /* clear screen with color: `col` */
 void maus_clear(Maus* mw, MausColor col);
+
+/* construct supplied a, r, g, b values to a MausColor */
+MausColor maus_color_argb(ule_u8 a, ule_u8 r, ule_u8 g, ule_u8 b);
 
 /* set text to system clipboard */
 void maus_clipboard_set_text(Maus* mw, const char* text);

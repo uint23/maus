@@ -19,6 +19,16 @@ static void vlog(FILE* fd, const char* fmt, va_list ap)
 	vfprintf(fd, fmt, ap);
 }
 
+MausColor maus_color_argb(ule_u8 a, ule_u8 r, ule_u8 g, ule_u8 b)
+{
+	MausColor color;
+	color.a = a;
+	color.r = r;
+	color.g = g;
+	color.b = b;
+	return color;
+}
+
 void maus_die(const char* fmt, ...)
 {
 	va_list ap;
