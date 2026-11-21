@@ -29,6 +29,7 @@ inc = include_directories('include')
 common_sources = [
     'source/maus.c',
     'source/maus_font.c',
+    'source/uleutf.c',
     'source/utils.c',
 ]
 backend_sources = []
