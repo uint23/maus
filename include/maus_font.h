@@ -5,7 +5,9 @@
 
 #include "maus.h"
 
-#define MAUS_BDF_GLYPHS_MAX 256
+#define MAUS_BDF_GLYPHS_MAX 0x110000
+#define MAUS_UNICODE_PLANES 17
+#define MAUS_GLYPH_PAGE_SIZE 256
 
 typedef struct {
 	ule_u8* bmp;
@@ -18,7 +20,7 @@ typedef struct {
 } MausGlyph;
 
 typedef struct {
-	MausGlyph glyphs[MAUS_BDF_GLYPHS_MAX];
+	MausGlyph** glyphs[MAUS_UNICODE_PLANES];
 
 	ule_i32 asc;
 	ule_i32 dsc;
@@ -26,7 +28,7 @@ typedef struct {
 	ule_i32 cellw;
 } MausFont;
 
-/* Loops through text passing parameters to glyph drawer */
+/* draw a string to screen buffer (unicode supported) */
 void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
                     const char* text, MausColor col);
 
