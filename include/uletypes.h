@@ -133,9 +133,16 @@ typedef char ule_check_iptr[(sizeof(ule_iptr) == sizeof(void*)) ? 1 : -1];
 	#endif /* ULE_I64_TWOS_COMPLEMENT */
 #endif /* ULE_HAS_64 */
 
+/* Boolean */
+typedef ule_u8 ule_bool;
+#define ule_true  (1)
+#define ule_false (0)
+
 /* Size types */
 typedef size_t    ule_usize;
 typedef ptrdiff_t ule_isize;
+#define ULE_USIZE_MAX ((ule_usize)-1)
+#define ULE_UPTR_MAX  ((ule_uptr)-1)
 
 /* (Optional) Short names */
 #ifdef ULE_SHORT_TYPE_NAMES
@@ -150,6 +157,10 @@ typedef ptrdiff_t ule_isize;
 		typedef ule_u64 u64;
 		typedef ule_i64 i64;
 	#endif /* ULE_HAS_64 */
+
+	typedef ule_bool bool;
+	#define true ule_true
+	#define false ule_false
 
 	typedef ule_uptr  uptr;
 	typedef ule_iptr  iptr;
