@@ -132,6 +132,11 @@ void maus_clear(Maus* mw, MausColor col);
 /* construct supplied a, r, g, b values to a MausColor */
 MausColor maus_color_argb(ule_u8 a, ule_u8 r, ule_u8 g, ule_u8 b);
 
+/* set pixel at coordinates to color.
+   this function blends where possible and checks bounds.
+   if you want something faster, use the MAUS_PIXEL_AT macro */
+void maus_set_pixel(Maus* mw, int x, int y, MausColor col);
+
 /* set text to system clipboard */
 void maus_clipboard_set_text(Maus* mw, const char* text);
 

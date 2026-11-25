@@ -10,6 +10,8 @@
 #include <time.h>
 
 #include "maus.h"
+#include "uletypes.h"
+#include "utils.h"
 
 static void vlog(FILE* fd, const char* fmt, va_list ap);
 
@@ -27,6 +29,24 @@ MausColor maus_color_argb(ule_u8 a, ule_u8 r, ule_u8 g, ule_u8 b)
 	color.g = g;
 	color.b = b;
 	return color;
+}
+
+void maus_set_pixel(Maus* mw, int x, int y, MausColor col)
+{
+	ule_u32* p = NULL;
+	ule_u32 pixel = 0u;
+
+	if (!mw || !mw->bfb || !col.a)
+		return;
+
+	if (x < 0 || y < 0 ||
+	    (ule_u32)x >= mw->width || (ule_u32)y >= mw->height)
+		return;
+
+	p = &MAUS_PIXEL_AT(mw, x, y);
+	pixel = MAUS_UNPACK_COL(col);
+
+	*p = col.a == 255 ? pixel : maus_blend(pixel, *p);
 }
 
 void maus_die(const char* fmt, ...)

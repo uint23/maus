@@ -8,9 +8,6 @@
 
 static ule_i32 glyph_advance(MausFont* font, MausGlyph* g);
 static MausGlyph* get_glyph(MausFont* font, ule_i32 codepoint, int create);
-static void glyph_to_buf(ule_i32 sgx, ule_i32 egx, ule_i32 sgy, ule_i32 egy,
-                         ule_i32 gox, ule_i32 goy, MausGlyph* g, ule_u32 col_up,
-                         ule_u32* buf, ule_u32 stride);
 static ule_i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
                            ule_i32* encoding, ule_i32* advance, ule_i32* bw, ule_i32* bh,
                            ule_i32* xoff, ule_i32* yoff, ule_i8* seen);
@@ -48,35 +45,6 @@ static MausGlyph* get_glyph(MausFont* font, ule_i32 codepoint, int create)
 		return NULL;
 
 	return &font->glyphs[plane][page][index];
-}
-
-/* put a glpyh to a buffer */
-static void glyph_to_buf(ule_i32 sgx, ule_i32 egx, ule_i32 sgy, ule_i32 egy,
-                         ule_i32 gox, ule_i32 goy, MausGlyph* g, ule_u32 col_up,
-                         ule_u32* buf, ule_u32 stride)
-{
-	int gy = 0;
-	int gx = 0;
-	ule_i32 dstx = 0;
-	ule_i32 dsty = 0;
-
-	ule_u32* row = NULL;
-	ule_i32 offset = 0;
-
-	for (gy = sgy; gy < egy; gy++) {
-		dsty = goy + gy;
-
-		/* calculate row pointer once per scanline */
-		row = buf + (dsty * stride);
-		offset = gy * g->w;
-
-		for (gx = sgx; gx < egx; gx++) {
-			if (g->bmp[offset + gx] > 0) {
-				dstx = gox + gx;
-				row[dstx] = col_up;
-			}
-		}
-	}
 }
 
 static ule_i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size,
@@ -194,46 +162,28 @@ static ule_u64 strtou64(const char* str)
 void maus_draw_char(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
                     ule_i32 codepoint, MausColor col)
 {
-	ule_u32 col_up = MAUS_UNPACK_COL(col);
-
-	/* origins to start drawing glyph from */
 	ule_i32 gox = 0;
 	ule_i32 goy = 0;
+	ule_i32 gx = 0;
+	ule_i32 gy = 0;
+	MausGlyph* g = NULL;
 
-	/* starting glyph coordinates */
-	ule_i32 sgx = 0;
-	ule_i32 sgy = 0;
-
-	/* ending glyph coordinates */
-	ule_i32 egx = 0;
-	ule_i32 egy = 0;
-
-	/* current glyph */
-	MausGlyph* g = 0;
-
-	if (!mw || !mw->bfb || !font)
+	if (!mw || !mw->bfb || !font || !col.a)
 		return;
 
 	g = get_glyph(font, codepoint, 0);
 	if (!g || !g->valid)
 		return;
 
-	/* origins to start drawing glyph from */
 	gox = x + g->xoff;
 	goy = y + font->asc - g->h - g->yoff;
 
-	/* starting coordinates */
-	sgx = (-gox > 0) ? -gox : 0;
-	sgy = (-goy > 0) ? -goy : 0;
-
-	egx = (mw->width - gox < g->w) ? (mw->width - gox) : g->w;
-	egy = (mw->height - goy < g->h) ? (mw->height - goy) : g->h;
-
-	/* cull glyphs which start off screen */
-	if (sgx >= egx || sgy >= egy)
-		return;
-
-	glyph_to_buf(sgx, egx, sgy, egy, gox, goy, g, col_up, mw->bfb, mw->stride);
+	for (gy = 0; gy < g->h; gy++) {
+		for (gx = 0; gx < g->w; gx++) {
+			if (g->bmp[gy * g->w + gx])
+				maus_set_pixel(mw, gox + gx, goy + gy, col);
+		}
+	}
 }
 
 void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
