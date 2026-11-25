@@ -32,6 +32,7 @@ For the full list of functions and what they do, look at
 [the header](include/maus.h).
 
 ```c
+#define MAUS_NO_FONT // can be dont with -D flag
 #include "maus.h"
 #include "maus_font.h"
 

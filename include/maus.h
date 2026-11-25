@@ -2,8 +2,8 @@
 #define MAUS_H
 
 #include <stdio.h>
-#include "uletypes.h"
 
+#include "uletypes.h"
 #include "maus_input.h"
 
 /* auto selection */
@@ -184,6 +184,10 @@ void maus_target_fps(Maus* mw, ule_u32 fps);
 
 /* change behavior of mouse based on state passed */
 void maus_cur_set_mode(Maus* mw, MausCursorState state);
+
+#ifndef MAUS_NO_FONT
+#include "maus_font.h"
+#endif
 
 #endif /* MAUS */
 
