@@ -14,7 +14,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
 
 /* Guidance:
    If you want to use the shorthand type names (eg u8 instead of ule_u8), you
-   must define ULE_SHORT_TYPE_NAMES before including this header.
+   must define ULE_SHORT_TYPE_NAMES before including this header. 
 
    If you want to define your own pointer types, you must define ULE_UPTR_TYPE
    and ULE_IPTR_TYPE before including this header. */
@@ -158,9 +158,20 @@ typedef ptrdiff_t ule_isize;
 		typedef ule_i64 i64;
 	#endif /* ULE_HAS_64 */
 
-	typedef ule_bool bool;
-	#define true ule_true
-	#define false ule_false
+	/* From C23 onwards, bool, true and false are keywords */
+	#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L
+		#ifndef bool
+			typedef ule_bool bool;
+		#endif
+
+		#ifndef true
+			#define true ule_true
+		#endif
+
+		#ifndef false
+			#define false ule_false
+		#endif
+	#endif
 
 	typedef ule_uptr  uptr;
 	typedef ule_iptr  iptr;
