@@ -11,7 +11,6 @@
 
 #include "maus.h"
 #include "uletypes.h"
-#include "utils.h"
 
 static void vlog(FILE* fd, const char* fmt, va_list ap);
 
@@ -31,6 +30,33 @@ MausColor maus_color_argb(ule_u8 a, ule_u8 r, ule_u8 g, ule_u8 b)
 	return color;
 }
 
+ule_u32 maus_color_blend(ule_u32 src, ule_u32 dst)
+{
+	ule_u32 a = src >> 24;
+	ule_u32 inv = 255 - a;
+	ule_u32 r;
+	ule_u32 g;
+	ule_u32 b;
+
+	r = (((src >> 16) & 255) * a + ((dst >> 16) & 255) * inv + 127) / 255;
+	g = (((src >> 8)  & 255) * a + ((dst >> 8)  & 255) * inv + 127) / 255;
+	b = ((src & 255)         * a + (dst & 255)         * inv + 127) / 255;
+
+	return 0xff000000u | (r << 16) | (g << 8) | b;
+}
+
+MausColor maus_color_tint(MausColor color, MausColor tint)
+{
+	MausColor result;
+
+	result.a = ((ule_u32)color.a * tint.a + 127) / 255;
+	result.r = ((ule_u32)color.r * tint.r + 127) / 255;
+	result.g = ((ule_u32)color.g * tint.g + 127) / 255;
+	result.b = ((ule_u32)color.b * tint.b + 127) / 255;
+
+	return result;
+}
+
 void maus_set_pixel(Maus* mw, int x, int y, MausColor col)
 {
 	ule_u32* p = NULL;
@@ -46,7 +72,7 @@ void maus_set_pixel(Maus* mw, int x, int y, MausColor col)
 	p = &MAUS_PIXEL_AT(mw, x, y);
 	pixel = MAUS_UNPACK_COL(col);
 
-	*p = col.a == 255 ? pixel : maus_blend(pixel, *p);
+	*p = col.a == 255 ? pixel : maus_color_blend(pixel, *p);
 }
 
 void maus_die(const char* fmt, ...)

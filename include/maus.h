@@ -54,6 +54,12 @@
 	 ((ule_u32)(c).g <<  8) | \
 	 ((ule_u32)(c).b))
 
+#define MAUS_PACK_COL(p) \
+	maus_color_argb(((p) >> 24) & 255, \
+	                ((p) >> 16) & 255, \
+	                ((p) >>  8) & 255, \
+	                 (p)        & 255)
+
 #define MAUS_PIXEL_AT(mw, x, y) ((mw)->bfb[(y) * (mw)->stride + (x)])
 
 typedef enum {
@@ -131,6 +137,13 @@ void maus_clear(Maus* mw, MausColor col);
 
 /* construct supplied a, r, g, b values to a MausColor */
 MausColor maus_color_argb(ule_u8 a, ule_u8 r, ule_u8 g, ule_u8 b);
+
+/* blend src color to dst color. returns result of their blending */
+ule_u32 maus_color_blend(ule_u32 src, ule_u32 dst);
+
+/* multiply the corresponding color channels (including alpha)
+   returns multiplied color */
+MausColor maus_color_tint(MausColor color, MausColor tint);
 
 /* set pixel at coordinates to color.
    this function blends where possible and checks bounds.
