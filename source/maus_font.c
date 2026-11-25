@@ -6,6 +6,7 @@
 #include "maus_font.h"
 #include "uleutf.h"
 
+static ule_i32 glyph_advance(MausFont* font, MausGlyph* g);
 static MausGlyph* get_glyph(MausFont* font, ule_i32 codepoint, int create);
 static void glyph_to_buf(ule_i32 sgx, ule_i32 egx, ule_i32 sgy, ule_i32 egy,
                          ule_i32 gox, ule_i32 goy, MausGlyph* g, ule_u32 col_up,
@@ -14,6 +15,14 @@ static ule_i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size
                            ule_i32* encoding, ule_i32* advance, ule_i32* bw, ule_i32* bh,
                            ule_i32* xoff, ule_i32* yoff, ule_i8* seen);
 static ule_u64 strtou64(const char* str);
+
+static ule_i32 glyph_advance(MausFont* font, MausGlyph* g)
+{
+	if (g && g->valid)
+		return g->adv;
+
+	return font->cellw > 0 ? font->cellw : 8;
+}
 
 static MausGlyph* get_glyph(MausFont* font, ule_i32 codepoint, int create)
 {
@@ -236,9 +245,6 @@ void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
 	ule_i32 cx = x;
 	ule_i32 cy = y;
 
-	/* current glyph */
-	MausGlyph* g = NULL;
-
 	if (!mw || !mw->bfb || !font || !text)
 		return;
 
@@ -253,15 +259,48 @@ void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
 
 		maus_draw_char(mw, font, cx, cy, cp, col);
 
-		g = get_glyph(font, cp, 0);
-		if (!g || !g->valid) {
-			/* still advance cx if character invalid */
-			cx += (font->cellw > 0 ? font->cellw : 8);
+		cx += glyph_advance(font, get_glyph(font, cp, 0));
+	}
+}
+
+ule_i32 maus_get_text_width(MausFont* font, const char* text)
+{
+	ule_i32 cp = 0;
+	ule_i32 width = 0;
+	ule_i32 max = 0;
+	if (!font || !text)
+		return 0;
+
+	while (*text) {
+		text = uleutf_codepoint(text, &cp);
+
+		if (cp == '\n') {
+			width = 0;
 			continue;
 		}
 
-		cx += g->adv;
+		width += glyph_advance(font, get_glyph(font, cp, 0));
+		if (width > max)
+			max = width;
 	}
+
+	return max;
+}
+
+ule_i32 maus_get_text_height(MausFont* font, const char* text)
+{
+	ule_i32 height = 0;
+
+	if (!font || !text || !*text)
+		return 0;
+
+	height = font->cellh;
+	while (*text) {
+		if (*text++ == '\n')
+			height += font->cellh;
+	}
+
+	return height;
 }
 
 MausFont* maus_font_load(const char* path)

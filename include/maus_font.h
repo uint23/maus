@@ -36,6 +36,12 @@ void maus_draw_char(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
 void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
                     const char* text, MausColor col);
 
+/* get width of text in pixels */
+ule_i32 maus_get_text_width(MausFont* font, const char* text);
+
+/* get height of text in pixels */
+ule_i32 maus_get_text_height(MausFont* font, const char* text);
+
 /* load a bdf font into MausFont. returns NULL on fail */
 MausFont* maus_font_load(const char* path);
 
