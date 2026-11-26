@@ -660,15 +660,6 @@ ule_i8 maus_create_window(Maus* mw)
 	return 1;
 }
 
-void maus_clear(Maus* mw, MausColor col)
-{
-	ule_u32 col_up = MAUS_UNPACK_COL(col);
-	ule_u32 pxs = mw->height * mw->width;
-	ule_u32 i;
-	for (i = 0; i < pxs; i++)
-		mw->bfb[i] = col_up;
-}
-
 Maus* maus_init(const char* title, int x, int y, int width, int height)
 {
 	Display* d = XOpenDisplay(NULL);

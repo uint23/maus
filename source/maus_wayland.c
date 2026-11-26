@@ -1012,17 +1012,6 @@ static MausKey keysym_to_mauskey(xkb_keysym_t sym)
 	}
 }
 
-void maus_clear(Maus* mw, MausColor col)
-{
-	ule_u32 up = MAUS_UNPACK_COL(col);
-	ule_u32 pxs = mw->height * mw->width;
-
-	ule_u32 i;
-
-	for (i = 0; i < pxs; i++)
-		mw->bfb[i] = up;
-}
-
 /* TODO */
 void maus_clipboard_set_text(Maus* mw, const char* text)
 {

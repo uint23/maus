@@ -57,6 +57,16 @@ MausColor maus_color_tint(MausColor color, MausColor tint)
 	return result;
 }
 
+void maus_clear(Maus* mw, MausColor col)
+{
+	ule_u32 pixel = MAUS_UNPACK_COL(col);
+	ule_u32 x, y;
+
+	for (y = 0; y < mw->height; y++)
+		for (x = 0; x < mw->width; x++)
+			MAUS_PIXEL_AT(mw, x, y) = pixel;
+}
+
 void maus_set_pixel(Maus* mw, int x, int y, MausColor col)
 {
 	ule_u32* p = NULL;

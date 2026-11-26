@@ -268,16 +268,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	return DefWindowProc(hwnd, msg, wp, lp);
 }
 
-void maus_clear(Maus* mw, MausColor col)
-{
-	ule_u32 col_up = MAUS_UNPACK_COL(col);
-	ule_u32 pxs = mw->height * mw->width;
-	ule_u32 i;
-
-	for (i = 0; i < pxs; i++)
-		mw->bfb[i] = col_up;
-}
-
 void maus_clipboard_set_text(Maus* mw, const char* text)
 {
 	MausBackend* be = &mw->backend;
