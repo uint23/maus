@@ -17,6 +17,12 @@ typedef struct {
 	ule_i16 yoff;
 	ule_u16 adv;
 	ule_i8  valid;
+
+	ule_u16 left;
+	ule_u16 top;
+	ule_u16 right;
+	ule_u16 bottom;
+
 } MausGlyph;
 
 typedef struct {
@@ -35,6 +41,10 @@ void maus_draw_char(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
 /* draw a string to screen buffer (unicode supported) */
 void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
                     const char* text, MausColor col);
+
+/* get texts bounds relative to drawing origin. returns 0 values on fail */
+void maus_get_text_bounds(MausFont* font, const char* text,
+                          ule_i32* x, ule_i32* y, ule_i32* width, ule_i32* height);
 
 /* get width of text in pixels */
 ule_i32 maus_get_text_width(MausFont* font, const char* text);

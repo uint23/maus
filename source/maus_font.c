@@ -91,6 +91,8 @@ static ule_i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size
 			g->xoff = *xoff;
 			g->yoff = *yoff;
 			g->adv = *advance;
+			g->left = g->w;
+			g->top = g->h;
 
 			g->bmp = calloc((size_t)(*bw) * (*bh), 1);
 			if (!g->bmp) {
@@ -116,8 +118,17 @@ static ule_i8 parse_glyphs(FILE* f, MausFont* font, char* line, size_t line_size
 				for (x = 0; x < *bw; x++) {
 					int bit = rowbits - 1 - x;
 
-					if ((bits >> bit) & 1)
-						g->bmp[y * (*bw) + x] = 255; /* solid */
+					if ((bits >> bit) & 1) {
+						g->bmp[y * (*bw) + x] = 255;
+						if (x < g->left)
+							g->left = x;
+						if (y < g->top)
+							g->top = y;
+						if (x + 1 > g->right)
+							g->right = x + 1;
+						if (y + 1 > g->bottom)
+							g->bottom = y + 1;
+					}
 				}
 			}
 
@@ -211,6 +222,59 @@ void maus_draw_text(Maus* mw, MausFont* font, ule_i32 x, ule_i32 y,
 
 		cx += glyph_advance(font, get_glyph(font, cp, 0));
 	}
+}
+
+void maus_get_text_bounds(MausFont* font, const char* text,
+                          ule_i32* x, ule_i32* y, ule_i32* width, ule_i32* height)
+{
+	ule_i32 cp = 0;
+	ule_i32 cx = 0;
+	ule_i32 cy = 0;
+	ule_i32 left = 0;
+	ule_i32 top = 0;
+	ule_i32 right = 0;
+	ule_i32 bottom = 0;
+	ule_i32 gx = 0;
+	ule_i32 gy = 0;
+	MausGlyph* g = NULL;
+	int seen = 0;
+
+	while (font && text && *text) {
+		text = uleutf_codepoint(text, &cp);
+
+		if (cp == '\n') {
+			cx = 0;
+			cy += font->cellh;
+			continue;
+		}
+
+		g = get_glyph(font, cp, 0);
+		if (g && g->valid && g->left < g->right) {
+			gx = cx + g->xoff;
+			gy = cy + font->asc - g->h - g->yoff;
+
+			if (!seen || gx + g->left < left)
+				left = gx + g->left;
+			if (!seen || gy + g->top < top)
+				top = gy + g->top;
+			if (!seen || gx + g->right > right)
+				right = gx + g->right;
+			if (!seen || gy + g->bottom > bottom)
+				bottom = gy + g->bottom;
+			seen = 1;
+		}
+
+		cx += glyph_advance(font, g);
+	}
+
+	if (x)
+		*x = left;
+	if (y)
+		*y = top;
+	if (width)
+		*width = right - left;
+	if (height)
+		*height = bottom - top;
 }
 
 ule_i32 maus_get_text_width(MausFont* font, const char* text)
