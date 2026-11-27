@@ -35,10 +35,6 @@ static void xi2_init(Maus* mw);
 static const KeyMapEntry keymap[] = {
 	{ XK_BackSpace,    MAUS_KEY_BACKSPACE }, { XK_Tab,              MAUS_KEY_TAB },
 	{ XK_Return,       MAUS_KEY_ENTER },     { XK_Escape,           MAUS_KEY_ESCAPE },
-	{ XK_apostrophe,   MAUS_KEY_APOSTROPHE },{ XK_comma,            MAUS_KEY_COMMA },
-	{ XK_space,        MAUS_KEY_SPACE },     { XK_minus,            MAUS_KEY_MINUS },
-	{ XK_period,       MAUS_KEY_PERIOD },    { XK_slash,            MAUS_KEY_SLASH },
-	{ XK_semicolon,    MAUS_KEY_SEMICOLON }, { XK_equal,            MAUS_KEY_EQUAL },
 	{ XK_Delete,       MAUS_KEY_DELETE },    { XK_Left,             MAUS_KEY_LEFT },
 	{ XK_Right,        MAUS_KEY_RIGHT },     { XK_Up,               MAUS_KEY_UP },
 	{ XK_Down,         MAUS_KEY_DOWN },      { XK_Home,             MAUS_KEY_HOME },
@@ -51,11 +47,9 @@ static const KeyMapEntry keymap[] = {
 	{ XK_Caps_Lock,    MAUS_KEY_CAPS_LOCK }, { XK_Num_Lock,         MAUS_KEY_NUM_LOCK },
 	{ XK_Pause,        MAUS_KEY_PAUSE },     { XK_Menu,             MAUS_KEY_MENU },
 	{ XK_KP_Add,       MAUS_KEY_KP_ADD },    { XK_KP_Enter,         MAUS_KEY_KP_ENTER },
-	{ XK_bracketright, MAUS_KEY_RIGHT_BRACKET }, { XK_grave,        MAUS_KEY_GRAVE },
-	{ XK_Scroll_Lock,  MAUS_KEY_SCROLL_LOCK },   { XK_Print,        MAUS_KEY_PRINT_SCREEN },
-	{ XK_KP_Decimal,   MAUS_KEY_KP_DECIMAL },    { XK_KP_Divide,    MAUS_KEY_KP_DIVIDE },
-	{ XK_KP_Multiply,  MAUS_KEY_KP_MULTIPLY },   { XK_KP_Subtract,  MAUS_KEY_KP_SUBTRACT },
-	{ XK_bracketleft,  MAUS_KEY_LEFT_BRACKET },  { XK_backslash,    MAUS_KEY_BACKSLASH },
+	{ XK_Scroll_Lock,  MAUS_KEY_SCROLL_LOCK }, { XK_Print,          MAUS_KEY_PRINT_SCREEN },
+	{ XK_KP_Decimal,   MAUS_KEY_KP_DECIMAL }, { XK_KP_Divide,      MAUS_KEY_KP_DIVIDE },
+	{ XK_KP_Multiply,  MAUS_KEY_KP_MULTIPLY }, { XK_KP_Subtract,   MAUS_KEY_KP_SUBTRACT },
 	{ XK_KP_Equal,     MAUS_KEY_KP_EQUAL },
 };
 
