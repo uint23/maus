@@ -526,13 +526,16 @@ static void keyboard_key(void* data, struct wl_keyboard* keyboard, ule_u32 seria
 	}
 
 	maus_key = keysym_to_mauskey(sym);
-	if (maus_key == MAUS_KEY_ENTER)
-		text[0] = '\n';
 	pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
-	event_push_key(mw, code, maus_key, text[0], pressed);
-
-	if (code < MAUS_KEYCODE_LAST)
+	if (code < MAUS_KEYCODE_LAST) {
+		if (!pressed || mw->key_codes[code])
+			maus_key = mw->key_map[code];
 		mw->key_codes[code] = pressed;
+		mw->key_map[code] = pressed ? maus_key : MAUS_KEY_NONE;
+	}
+	if (pressed && maus_key == MAUS_KEY_ENTER)
+		text[0] = '\n';
+	event_push_key(mw, code, maus_key, text[0], pressed);
 	if (maus_key != MAUS_KEY_NONE)
 		mw->key_syms[maus_key] = pressed;
 
@@ -974,6 +977,7 @@ static MausKey keysym_to_mauskey(xkb_keysym_t sym)
 
 	switch (sym) {
 		case XKB_KEY_BackSpace:    return MAUS_KEY_BACKSPACE;
+		case XKB_KEY_ISO_Left_Tab:
 		case XKB_KEY_Tab:          return MAUS_KEY_TAB;
 		case XKB_KEY_Return:       return MAUS_KEY_ENTER;
 		case XKB_KEY_Escape:       return MAUS_KEY_ESCAPE;

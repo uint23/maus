@@ -87,7 +87,7 @@ typedef struct {
 		ule_u32 code; /* raw, backend keycode */
 		MausKey key;  /* logical, mapped key */
 		char    text; /* translated text from key */
-		ule_i8      pressed;
+		ule_i8  pressed;
 	} key;
 
 	struct {
@@ -127,6 +127,7 @@ typedef struct {
 
 	ule_i8 key_codes[MAUS_KEYCODE_LAST]; /* physical keys */
 	ule_i8 key_syms[MAUS_KEY_LAST];      /* logical keys */
+	MausKey key_map[MAUS_KEYCODE_LAST];  /* pressed keysyms */
 
 	MausCursor cursor;
 	ule_i8         mouse_buttons[MAUS_MOUSE_BUTTON_LAST];

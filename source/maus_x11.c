@@ -34,6 +34,7 @@ static void xi2_init(Maus* mw);
 
 static const KeyMapEntry keymap[] = {
 	{ XK_BackSpace,    MAUS_KEY_BACKSPACE }, { XK_Tab,              MAUS_KEY_TAB },
+	{ XK_ISO_Left_Tab, MAUS_KEY_TAB },
 	{ XK_Return,       MAUS_KEY_ENTER },     { XK_Escape,           MAUS_KEY_ESCAPE },
 	{ XK_Delete,       MAUS_KEY_DELETE },    { XK_Left,             MAUS_KEY_LEFT },
 	{ XK_Right,        MAUS_KEY_RIGHT },     { XK_Up,               MAUS_KEY_UP },
@@ -244,16 +245,17 @@ static ule_i8 handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 			code = xev->xkey.keycode;
 			ev->key.code = code;
 			ev->key.pressed = 1;
-			if (code < MAUS_KEYCODE_LAST)
-			        mw->key_codes[code] = 1;
-
-			/* grab the raw, base sym */
-			sym = XLookupKeysym(&xev->xkey, 0);
+			len = XLookupString(&xev->xkey, buf, sizeof(buf), &sym, NULL);
 			ev->key.key = keysym_to_mauskey(sym);
+			if (code < MAUS_KEYCODE_LAST) {
+				if (mw->key_codes[code])
+					ev->key.key = mw->key_map[code];
+				mw->key_codes[code] = 1;
+				mw->key_map[code] = ev->key.key;
+			}
 			if (ev->key.key != MAUS_KEY_NONE)
 			        mw->key_syms[ev->key.key] = 1;
 
-			len = XLookupString(&xev->xkey, buf, sizeof(buf), NULL, NULL);
 			if (len > 0)
 				ev->key.text = (buf[0] == '\r') ? '\n' : buf[0];
 			else
@@ -269,12 +271,12 @@ static ule_i8 handle_event(XEvent* xev, MausEvent* ev, Maus* mw)
 			ev->key.pressed = 0;
 			ev->key.text = 0;
 
-			if (code < MAUS_KEYCODE_LAST)
-			        mw->key_codes[code] = 0;
-
-			/* unset base sym set on `KeyPress` */
-			sym = XLookupKeysym(&xev->xkey, 0);
-			ev->key.key = keysym_to_mauskey(sym);
+			ev->key.key = MAUS_KEY_NONE;
+			if (code < MAUS_KEYCODE_LAST) {
+				ev->key.key = mw->key_map[code];
+				mw->key_codes[code] = 0;
+				mw->key_map[code] = MAUS_KEY_NONE;
+			}
 			if (ev->key.key != MAUS_KEY_NONE)
 			        mw->key_syms[ev->key.key] = 0;
 
